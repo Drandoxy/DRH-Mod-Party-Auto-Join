@@ -604,21 +604,21 @@ class Main extends Mod {
 			leaderOfflineAt = -1;
 		if (returningForOffline || retryPaused || retryPopup != null)
 			return;
-		if (here(state.leader) != null) {
+		if (inRun && here(state.leader) != null) {
 			sharedNode = node;
 			leaderWasHere = true;
 			leaderDepartureSeen = false;
 		}
-		if (leaderWasHere && sharedNode > 0 && node == sharedNode && !leaderDepartureSeen) {
+		if (FollowPolicy.waitForDeparture(inRun, leaderWasHere, leaderDepartureSeen) && sharedNode > 0 && node == sharedNode) {
 			panel.ask(false);
 			status = "Waiting for Leader";
 			return;
 		}
-		if (leaderWasHere && !leaderDepartureSeen) {
+		if (FollowPolicy.waitForDeparture(inRun, leaderWasHere, leaderDepartureSeen)) {
 			status = "Waiting for Leader";
 			return;
 		}
-		var action = policy.decide(Lib.getTimer(), state.leader, facade.accountId, node, here(state.leader) != null, inRun, summary != null, transition
+		var action = policy.decide(Lib.getTimer(), state.leader, facade.accountId, node, inRun && here(state.leader) != null, inRun, summary != null, transition
 			|| joining, key);
 		if (action == "ask") {
 			promptKey = key;
