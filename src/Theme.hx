@@ -67,7 +67,9 @@ class Theme {
 		f.setTextFormat(fmt);
 		f.y = (h - f.textHeight) / 2 - 2;
 		if (GameArt.current != null)
-			GameArt.current.font(f, 12, 0xFFFFFF, true);
+			GameArt.current.font(f, 12, 0xFFFFFF, true, function() {
+				f.y = (h - f.textHeight) / 2 - 2;
+			});
 		s.addEventListener(openfl.events.MouseEvent.CLICK, function(e) {
 			e.stopPropagation();
 			action();

@@ -59,7 +59,7 @@ class GameArt {
 			job();
 	}
 
-	public function font(field:TextField, size:Int, color:Int, center:Bool = false):Void {
+	public function font(field:TextField, size:Int, color:Int, center:Bool = false, ?ready:Void->Void):Void {
 		var apply = function() {
 			if (dead)
 				return;
@@ -75,6 +75,8 @@ class GameArt {
 				field.embedFonts = template.embedFonts;
 				field.filters = [];
 			}
+			if (ready != null)
+				ready();
 		};
 		if (template == null && hud == null)
 			pendingFonts.push(apply);

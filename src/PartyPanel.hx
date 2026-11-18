@@ -313,17 +313,28 @@ class PartyPanel extends Sprite {
 		promptText.height = 34;
 		promptText.x = 10;
 		promptText.y = 6;
+		var messageField = promptText;
+		var centerPrompt = function() {
+			var format = messageField.defaultTextFormat;
+			format.align = openfl.text.TextFormatAlign.CENTER;
+			messageField.defaultTextFormat = format;
+			messageField.setTextFormat(format);
+			messageField.y = 6 + (28 - messageField.textHeight) / 2 - 2;
+		};
+		centerPrompt();
+		if (GameArt.current != null)
+			GameArt.current.font(messageField, 12, 0xFFF3CF, false, centerPrompt);
 		var yes = Theme.button("Yes", 75, 27, function() {
 			onFollow(true);
 		});
-		yes.x = 12;
-		yes.y = 45;
+		yes.x = (state.width - 24 - 162) / 2;
+		yes.y = 39;
 		prompt.addChild(yes);
 		var no = Theme.button("No", 75, 27, function() {
 			onFollow(false);
 		});
-		no.x = 98;
-		no.y = 45;
+		no.x = yes.x + 87;
+		no.y = 39;
 		prompt.addChild(no);
 		addChild(prompt);
 		layoutRows();
