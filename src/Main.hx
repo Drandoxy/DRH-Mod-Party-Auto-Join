@@ -83,13 +83,8 @@ class Main extends Mod {
 		state = new PartyState(ctx.data + "/party.json");
 		markerPath = ctx.data + "/waiting.json";
 		clearMarker();
-		keySubscription = ctx.keys.action("toggleParty", "Toggle Party Time panel", "Show or hide the party panel.", Keyboard.P, true, true)
-			.onPress(function() {
-				state.shown = !state.shown;
-				state.save();
-				if (panel != null)
-					panel.visible = state.shown;
-			});
+		keySubscription = ctx.keys.action("toggleParty", "Toggle Party Auto Join", "Pause and hide, or show in manual mode.", Keyboard.P, true, true)
+			.onPress(toggleParty);
 	}
 
 	override public function ready(context:Context):Void {
@@ -103,18 +98,48 @@ class Main extends Mod {
 		if (manualOnly)
 			lastError = "Automatic joining paused";
 		startupNeedsApproval = state.leader > 0 && !manualOnly;
+		if (state.shown) {
+			createFriendButtons();
+			if (state.members.length > 0)
+				startParty();
+		} else {
+			pauseAutoJoin();
+		}
+		ctx.core.overlay.addEventListener(Event.ENTER_FRAME, frame);
+	}
+
+	function createFriendButtons():Void {
+		if (addButton != null)
+			return;
 		addButton = new FriendButton(facade, addMember, function(message) {
 			ctx.log(message);
 		});
 		addButton.contains = state.contains;
 		addButton.remove = removeMember;
 		addButton.notify = showNotification;
-		if (state.members.length > 0)
-			startParty();
-		ctx.core.overlay.addEventListener(Event.ENTER_FRAME, frame);
+	}
+
+	function toggleParty():Void {
+		// Both transitions resume in manual mode; hiding releases all party
+		// watchers and assets. Only the shortcut and dormant frame guard remain.
+		pauseAutoJoin();
+		state.shown = !state.shown;
+		state.save();
+		if (!state.shown) {
+			stopParty();
+			if (addButton != null)
+				addButton.destroy();
+			addButton = null;
+		} else if (facade != null) {
+			createFriendButtons();
+			if (state.members.length > 0)
+				startParty();
+		}
 	}
 
 	function showNotification(message:String):Void {
+		if (!state.shown)
+			return;
 		if (noticePopup != null)
 			noticePopup.destroy();
 		noticePopup = new PartyDialog(ctx, "Party Time", message, null, null, function() {
@@ -254,7 +279,12 @@ class Main extends Mod {
 	}
 
 	function followingLeader():Bool {
-		return state.leader > 0 && state.leader != facade.accountId && !manualOnly && !retryPaused && !startupNeedsApproval;
+		return state.leader > 0
+			&& state.leader != facade.accountId
+			&& state.shown
+			&& !manualOnly
+			&& !retryPaused
+			&& !startupNeedsApproval;
 	}
 
 	function releaseAutomationHold():Void {
@@ -343,7 +373,7 @@ class Main extends Mod {
 	function refreshRows():Void {
 		if (panel == null)
 			return;
-		panel.autoJoining = state.leader > 0 && !manualOnly && !retryPaused && !startupNeedsApproval;
+		panel.autoJoining = state.leader > 0 && state.shown && !manualOnly && !retryPaused && !startupNeedsApproval;
 		var data:Array<Dynamic> = [];
 		var running = facade.mainStateMachine.currentStateName == "RunState" || summary != null;
 		if (!running) {
@@ -395,6 +425,8 @@ class Main extends Mod {
 	}
 
 	function frame(event:Event):Void {
+		if (!state.shown || addButton == null)
+			return;
 		// Empty roster: only discover native friend buttons; no presence polling,
 		// game-object watchers, portraits, panel animations or asset bundles.
 		startupTrace("friend-button-tick");
@@ -664,10 +696,12 @@ class Main extends Mod {
 		if (retryPopup != null)
 			retryPopup.destroy();
 		retryPopup = null;
-		panel.ask(false);
+		if (panel != null)
+			panel.ask(false);
 		lastError = "Automatic joining paused";
 		status = "Auto join paused - click Join";
-		refreshRows();
+		if (panel != null)
+			refreshRows();
 	}
 
 	function manualJoin():Void {

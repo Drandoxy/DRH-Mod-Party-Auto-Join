@@ -1,26 +1,27 @@
 # Party Auto Join
 
 <!-- drh:show -->
-A local party panel for up to four friends, excluding your own character. In town, open a friend's portrait popup and choose **Party +**. Right-click a party row to **Set as Leader**, **Remove as Leader**, or remove the member.
+Keep up to four friends in a movable panel and follow a chosen leader.
 
-The panel starts near the upper-left town area. It has no outer background, border, or title. Hold a member row for 0.5 seconds, then drag. Cards have a fixed 310-pixel width and grow vertically in a dungeon. Position, roster, and leader are saved automatically when changed. Ctrl+Shift+P toggles the panel. Hiding the panel does not stop leader following; use **Pause Auto Join** in the leader menu to stop following.
+- **Add friends:** choose **Party +** in a friend's portrait menu. Use the row menu to choose a leader or remove someone.
+- **Manual mode:** selecting a leader starts here. No automatic joining, welcome prompts or end-screen restrictions. Normal controls and Dungeon Manager automation work as usual.
+- **Auto mode:** click **Join** beside the leader. It waits if they are in town, then follows their floors and restarts. Switching dungeons while playing may ask for confirmation. Normal game admission rules apply. End-screen next/restart automation waits for the leader; loot collection and animation skipping still work.
+- **Pause Auto Join** returns to manual mode.
+- **Ctrl+Shift+P** pauses and hides the panel, stopping background work. Press again to show it in **manual mode**. Your roster and leader are kept.
 
-In a dungeon, present players have hero portraits, small profile portraits, compact HP/mana bars, and names above the bars. Online players outside your dungeon use compact status rows. Offline members are greyed out in town and hidden during gameplay. Portraits load before the short expansion animation. The leader has a gold crown. This is a local roster, not a server party invitation system.
+Hold a row for half a second to drag it. Town and dungeon positions save separately. Rows show friend status, or hero health/mana when playing together. No party invitations are sent.
 
-When a leader has a joinable dungeon, the mod uses the game's normal friend-join flow. While already playing, it asks **Leader joined another dungeon. Follow them?** Yes exits the current dungeon without a second loot-loss confirmation, then follows the leader. No stays in the current game. Normal server admission rules still apply.
+### Screenshots
 
-At the end screen, Next/Retry and the local Auto Dungeon restart option are blocked while automatic following of another leader is active. **Waiting for Leader** replaces them. Return to town is still available. Manual join mode restores normal end-screen controls and Dungeon Manager behavior. Remaining reward/crate decisions must finish before automatic departure from a summary.
+![Add a friend](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/add-to-party.png)
 
-A failed join shows the game's error in a game-styled Yes/No dialog asking **Retry joining?** No stops automatic attempts until the manual **Join** button beside the leader is pressed. A leader changing dungeons does not resume attempts after No. The presence protocol exposes a dungeon node, not a server session ID, so repeated runs of the same dungeon require normal server-validated attempts rather than exact instance detection.
+![Choose a leader](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/leader-menu.png)
 
-Profile and hero portraits use game assets. Player rows and buttons use a custom brown/gold and green style, with embedded game fonts. The compact custom menu matches the game’s dark popup style. Each row has an ellipsis button to open its menu; right-click also works. Party + is added inside the native friend popup without changing its origin or native animation and becomes Party - for existing members. The crown is a small vector. No external image assets are bundled and no messages or invitations are sent to friends.
+![Town roster](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/town-roster.png)
 
-Your own account is excluded. The panel has no resize handle; its fixed card width keeps labels and controls readable. Saved positions are retained. Full visual validation in the running game is still required.
-
-With an empty roster, only the native Party +/- integration runs. Presence and game-object watchers, roster graphics and their assets are created on the first addition and released on the last removal. If the last leader was removed during a run, a small Dungeon Manager hold heartbeat remains until returning to town, preserving the requested automatic-next/restart pause.
-
-The leader menu includes **Pause Auto Join** as its second action. It keeps the leader, switches to manual Join, closes the welcome/retry prompts and suppresses automatic following. Pause is saved across restarts. Clicking manual Join resumes automatic joining, including waiting for the leader to start a dungeon when they are in town. Selecting a leader starts in manual mode. The Pause Auto Join action is shown only while automatic following is enabled; clicking Join enables it.
+![End screen](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/victory.png)
 
 <!-- /drh:show -->
 
-Dialog asset loading follows the approach used by [Ultimate Records](https://github.com/Drandoxy/DRH-Mod-Records). Game artwork is loaded from the installed game and is not redistributed.
+Dialog artwork loading follows [Ultimate Records](https://github.com/Drandoxy/DRH-Mod-Records). Game artwork loads at runtime.
+
