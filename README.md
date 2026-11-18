@@ -19,9 +19,10 @@ Hold a row for half a second to drag it. Town and dungeon positions save separat
 
 ![Town roster](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/town-roster.png)
 
+![Manual Join and offline status](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/main/docs/screenshots/manual-join-status.png)
+
 ![End screen](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/victory.png)
 
 <!-- /drh:show -->
 
 Dialog artwork loading follows [Ultimate Records](https://github.com/Drandoxy/DRH-Mod-Records). Game artwork loads at runtime.
-
