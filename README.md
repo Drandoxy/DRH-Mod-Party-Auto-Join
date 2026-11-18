@@ -13,15 +13,15 @@ Hold a row for half a second to drag it. Town and dungeon positions save separat
 
 ### Screenshots
 
-![Add a friend](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/add-to-party.png)
+![Add a friend](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.55/docs/screenshots/add-to-party.png)
 
-![Choose a leader](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/leader-menu.png)
+![Choose a leader](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.55/docs/screenshots/leader-menu.png)
 
-![Town roster](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/town-roster.png)
+![Town roster](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.55/docs/screenshots/town-roster.png)
 
-![Manual Join and offline status](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/main/docs/screenshots/manual-join-status.png)
+![Manual Join and offline status](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.55/docs/screenshots/manual-join-status.png)
 
-![End screen](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.54/docs/screenshots/victory.png)
+![End screen](https://raw.githubusercontent.com/Drandoxy/DRH-Mod-Party-Time-Auto-Game-Joiner/v0.1.55/docs/screenshots/victory.png)
 
 <!-- /drh:show -->
 

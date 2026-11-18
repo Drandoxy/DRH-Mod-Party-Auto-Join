@@ -828,7 +828,9 @@ class Main extends Mod {
 		status = "Waiting for Leader";
 		var latest:FriendInfo = friend(state.leader);
 		var online = latest != null && latest.isOnline();
-		var message = online ? "Sorry, your leader is in town now, so their game could not be joined. Once they start a game, you will join automatically." : "Your leader is no longer online, so their game could not be joined. Following remains enabled; you will be asked again when they return and start a game.";
+		var message = online ? "Sorry, your leader is in town now, so their game could not be joined. "
+			+ "Once they start a game, you will join automatically." : "Your leader is no longer online, so their game could not be joined. "
+			+ "Following remains enabled; you will be asked again when they return and start a game.";
 		showNotification(message);
 	}
 
