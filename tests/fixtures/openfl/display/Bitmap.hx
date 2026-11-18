@@ -1,0 +1,1 @@
+package openfl.display;class Bitmap extends DisplayObject{public var smoothing=false;public var bitmapData:Dynamic;public function new(data:Dynamic){super();bitmapData=data;}}

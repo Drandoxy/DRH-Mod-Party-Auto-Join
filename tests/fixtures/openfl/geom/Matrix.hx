@@ -1,0 +1,1 @@
+package openfl.geom;class Matrix{public function new(){}public function createGradientBox(w:Float,h:Float,r:Float){}public function clone(){return new Matrix();}}

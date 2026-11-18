@@ -1,0 +1,1 @@
+package openfl.display;class Sprite extends DisplayObjectContainer {public var scale9Grid:openfl.geom.Rectangle;public var graphics=new Graphics();public var buttonMode=false;}

@@ -1,0 +1,1 @@
+package openfl.filters;class GlowFilter{public function new(c:Int,a:Float,x:Float,y:Float,s:Float){}}

@@ -1,0 +1,1 @@
+package openfl.display;class MovieClip extends Sprite {public function stop(){}}

@@ -1,0 +1,1 @@
+package openfl.ui;class Keyboard{public static var P=80;}

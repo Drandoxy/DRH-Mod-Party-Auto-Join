@@ -1,0 +1,10 @@
+*.zip
+/*-0.*.json
+__pycache__/
+*.pyc
+/diagnostic-*/
+/-cp
+/local-diagnostics.json
+/gate_logging.enabled
+/gate-logs/
+*.jsonl

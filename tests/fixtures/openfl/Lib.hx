@@ -1,0 +1,1 @@
+package openfl;class Lib{public static var now=10000;public static function getTimer():Int{return now;}}

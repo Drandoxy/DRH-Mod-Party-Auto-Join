@@ -1,0 +1,1 @@
+package openfl.filters;class ColorMatrixFilter {public function new(matrix:Array<Float>){}}

@@ -1,0 +1,1 @@
+package openfl.display;class GradientType{public static var LINEAR="linear";}

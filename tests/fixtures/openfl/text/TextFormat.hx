@@ -1,0 +1,1 @@
+package openfl.text;class TextFormat{public var font:String;public var color:Int;public var align:String;public var size:Dynamic;public function new(font:String,size:Int,color:Int,bold:Bool){this.size=size;}}

@@ -1,0 +1,1 @@
+package openfl.events;class KeyboardEvent extends Event {public static var KEY_DOWN="keyDown";public static var KEY_UP="keyUp";public var keyCode:Int;public var blocked=false;public function new(code:Int){super();keyCode=code;}public function preventDefault():Void{blocked=true;}public function stopImmediatePropagation():Void{blocked=true;}}
