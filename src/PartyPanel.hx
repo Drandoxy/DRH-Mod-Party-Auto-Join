@@ -30,6 +30,16 @@ class PartyPanel extends Sprite {
 	var moving = false;
 
 	public var onManualJoin:Void->Void;
+	public var onPauseJoin:Void->Void;
+	public var autoJoining(default, set) = false;
+
+	function set_autoJoining(value:Bool):Bool {
+		if (autoJoining != value)
+			closeMenu();
+		autoJoining = value;
+		return value;
+	}
+
 	public var onLeader:Int->Void;
 	public var onRemove:Int->Void;
 	public var onFollow:Bool->Void;
@@ -215,7 +225,7 @@ class PartyPanel extends Sprite {
 				if (menu.x + w > ctx.viewWidth)
 					menu.x = Math.max(0, b.x - w - 14);
 				var anchor = row.menuBounds(ctx.core.overlay);
-				menu.y = Math.max(0, Math.min(anchor.y + anchor.height / 2 - 28, ctx.viewHeight - 90));
+				menu.y = Math.max(0, Math.min(anchor.y + anchor.height / 2 - 28, ctx.viewHeight - (state.leader == menuMember && autoJoining ? 130 : 90)));
 				return;
 			}
 	}
@@ -228,7 +238,7 @@ class PartyPanel extends Sprite {
 		closeMenu();
 		menuMember = id;
 		menu = new Sprite();
-		Theme.board(menu, 190, 90);
+		Theme.board(menu, 190, state.leader == id && autoJoining ? 130 : 90);
 		ctx.core.overlay.addChild(menu);
 		var a = Theme.button(state.leader == id ? "Remove as Leader" : "Set as Leader", 166, 30, function() {
 			closeMenu();
@@ -237,12 +247,22 @@ class PartyPanel extends Sprite {
 		a.x = 12;
 		a.y = 10;
 		menu.addChild(a);
+		if (state.leader == id && autoJoining) {
+			var pause = Theme.button("Pause Auto Join", 166, 30, function() {
+				closeMenu();
+				if (onPauseJoin != null)
+					onPauseJoin();
+			});
+			pause.x = 12;
+			pause.y = 50;
+			menu.addChild(pause);
+		}
 		var b = Theme.button("Remove from Party", 166, 30, function() {
 			closeMenu();
 			onRemove(id);
 		});
 		b.x = 12;
-		b.y = 50;
+		b.y = state.leader == id && autoJoining ? 90 : 50;
 		menu.addChild(b);
 		positionMenu();
 		ctx.core.overlay.stage.addEventListener(MouseEvent.MOUSE_DOWN, outside, true);

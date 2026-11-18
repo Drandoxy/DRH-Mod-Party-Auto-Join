@@ -214,7 +214,7 @@ class PartyDialog extends Sprite {
 		b.graphics.beginFill(0x148500);
 		b.graphics.drawRoundRect(0, 0, 30, 28, 6, 6);
 		b.graphics.endFill();
-		b.buttonMode = true;
+		new ButtonHover(b, ctx.core.facade);
 		var t = plainText(b, "X", 18, 0xFFFFFF);
 		t.x = 8;
 		t.y = 2;
@@ -257,7 +257,7 @@ class PartyDialog extends Sprite {
 			return holder;
 		}
 		var b = new Sprite();
-		b.buttonMode = true;
+		new ButtonHover(b, ctx.core.facade);
 		b.mouseChildren = false;
 		var g = b.graphics;
 		g.lineStyle(2, 0x201807);

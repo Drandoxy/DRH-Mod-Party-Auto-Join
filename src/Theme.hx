@@ -46,7 +46,7 @@ class Theme {
 
 	public static function button(label:String, w:Float, h:Float, action:Void->Void):Sprite {
 		var s = new Sprite();
-		s.buttonMode = true;
+		new ButtonHover(s, GameArt.current == null ? null : GameArt.current.facade);
 		s.mouseChildren = false;
 		var g = s.graphics;
 		g.lineStyle(2, 0x201807);

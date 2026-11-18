@@ -17,6 +17,7 @@ class Main extends Mod {
 	var retryPopup:PartyDialog;
 	var noticePopup:PartyDialog;
 	var retryPaused = false;
+	var manualOnly = false;
 	var pendingExitCallback = false;
 	var leaderWasHere = false;
 	var leaderDepartureSeen = false;
@@ -41,6 +42,7 @@ class Main extends Mod {
 	var addButton:FriendButton;
 	var subscriptions:Array<Dynamic> = [];
 	var summary:Dynamic;
+	var resultDepartures:haxe.ds.IntMap<Bool> = new haxe.ds.IntMap();
 	var lock = new SummaryLock();
 	var policy = new FollowPolicy();
 	var nextTick = 0;
@@ -96,7 +98,11 @@ class Main extends Mod {
 		startupTrace("ready");
 		if (state.contains(facade.accountId))
 			state.remove(facade.accountId);
-		startupNeedsApproval = state.leader > 0;
+		manualOnly = state.autoJoinPaused;
+		retryPaused = manualOnly;
+		if (manualOnly)
+			lastError = "Automatic joining paused";
+		startupNeedsApproval = state.leader > 0 && !manualOnly;
 		addButton = new FriendButton(facade, addMember, function(message) {
 			ctx.log(message);
 		});
@@ -125,6 +131,7 @@ class Main extends Mod {
 		startupTrace("party-panel");
 		panel = new PartyPanel(ctx, state);
 		panel.onManualJoin = manualJoin;
+		panel.onPauseJoin = pauseAutoJoin;
 		panel.onLeader = setLeader;
 		panel.onRemove = removeMember;
 		panel.onFollow = answer;
@@ -153,8 +160,10 @@ class Main extends Mod {
 				errorHook.restore();
 		}));
 		subscriptions.push(ctx.core.onObjectReady(function(o) {
-			if (Std.isOfType(o, DistributedDungeonSummary))
+			if (Std.isOfType(o, DistributedDungeonSummary)) {
+				resultDepartures.clear();
 				summary = o;
+			}
 		}));
 		subscriptions.push(ctx.core.onObjectGone(function(o) {
 			if (o == summary) {
@@ -244,7 +253,20 @@ class Main extends Mod {
 		refreshRows();
 	}
 
+	function followingLeader():Bool {
+		return state.leader > 0 && state.leader != facade.accountId && !manualOnly && !retryPaused && !startupNeedsApproval;
+	}
+
+	function releaseAutomationHold():Void {
+		autoHoldUntilLeave = false;
+		lock.restore();
+		clearMarker();
+	}
+
 	function setLeader(id:Int):Void {
+		manualOnly = false;
+		state.autoJoinPaused = false;
+		state.save();
 		leaderReturnedPrompt = false;
 		leaderOfflineAt = -1;
 		returningForOffline = false;
@@ -274,16 +296,22 @@ class Main extends Mod {
 		promptKey = "";
 		panel.ask(false);
 		clearMarker();
-		updateMarker(id > 0 && id != facade.accountId, Lib.getTimer());
-		lock.apply(summary, id > 0 && id != facade.accountId);
+		updateMarker(followingLeader(), Lib.getTimer());
+		lock.apply(summary, followingLeader());
 		if (id == 0) {
 			lock.restore();
 			joining = false;
 			targetId = 0;
 			status = "";
 		}
-		refreshRows();
-		poll(true);
+		joining = false;
+		targetId = 0;
+		if (state.leader > 0) {
+			// Selecting leadership is not consent to join or leave a dungeon.
+			pauseAutoJoin();
+		} else {
+			refreshRows();
+		}
 	}
 
 	function removeMember(id:Int):Void {
@@ -315,10 +343,13 @@ class Main extends Mod {
 	function refreshRows():Void {
 		if (panel == null)
 			return;
+		panel.autoJoining = state.leader > 0 && !manualOnly && !retryPaused && !startupNeedsApproval;
 		var data:Array<Dynamic> = [];
 		var running = facade.mainStateMachine.currentStateName == "RunState" || summary != null;
-		if (!running)
+		if (!running) {
 			heroSnapshots.clear();
+			resultDepartures.clear();
+		}
 		for (m in state.members) {
 			var f = friend(m.id);
 			if (m.id == facade.accountId && f == null)
@@ -347,20 +378,11 @@ class Main extends Mod {
 			if (m.id == state.leader && status != "")
 				label = status;
 			var actionStatus = label;
-			if (f != null) {
-				if (f.isInDungeon()) {
-					var place:String = f.dungeonName;
-					if (place != null && Std.string(place) != "")
-						label = Std.string(place);
-				} else if (f.isOnline())
-					label = "In town";
-			}
 			var online = f != null && f.isOnline();
-			if (!online)
-				label = "Offline";
-			else if (hero == null) {
-				label = f.isInDungeon() && f.dungeonName != null && f.dungeonName != "" ? f.dungeonName : "In town";
-			}
+			var departed = summary != null && resultDepartures.exists(m.id);
+			if (departed)
+				hero = null;
+			label = MemberStatus.label(online, hero != null && !departed, f != null && f.isInDungeon(), f == null ? null : f.dungeonName, summary != null);
 			data.push({
 				friend: f,
 				hero: online ? hero : null,
@@ -414,7 +436,9 @@ class Main extends Mod {
 		}
 		if (summary == null && here(state.leader) != null)
 			leaderWasHere = true;
-		var waiting = state.leader > 0 && state.leader != facade.accountId;
+		var waiting = followingLeader();
+		if (!waiting && state.leader > 0)
+			autoHoldUntilLeave = false;
 		updateMarker(waiting, now);
 		lock.apply(summary, waiting);
 		if (now >= nextPresence) {
@@ -428,7 +452,13 @@ class Main extends Mod {
 	}
 
 	function leaderExitedResults(event:Dynamic):Void {
-		if (summary == null || state.leader <= 0 || Read.number(event, "id") != state.leader)
+		if (summary == null)
+			return;
+		var id = Std.int(Read.number(event, "id"));
+		if (id <= 0)
+			return;
+		resultDepartures.set(id, true);
+		if (state.leader <= 0 || id != state.leader)
 			return;
 		leaderDepartureSeen = true;
 		policy.nextAttempt = Math.max(policy.nextAttempt, Lib.getTimer() + 1500);
@@ -436,6 +466,8 @@ class Main extends Mod {
 	}
 
 	function poll(force:Bool):Void {
+		if (manualOnly)
+			return;
 		if (state.leader <= 0 || state.leader == facade.accountId) {
 			leaderNode = 0;
 			panel.ask(false);
@@ -482,19 +514,21 @@ class Main extends Mod {
 					startupDetails = null;
 					startupPopup = null;
 					startupPromptNode = 0;
-					startupNeedsApproval = !yes;
-					startupDeclined = !yes;
-					retryPaused = !yes;
-					lastError = yes ? "" : "Automatic joining is off";
-					status = yes ? "Waiting for Leader" : "Auto join off - click Join";
-					if (yes) {
-						policy.reset();
-						var latest:FriendInfo = friend(state.leader);
-						if (latest == null || !latest.isOnline() || !latest.isInDungeon()) {
-							leaderUnavailableNotice();
-						} else
-							poll(true);
+					if (!yes) {
+						pauseAutoJoin();
+						return;
 					}
+					startupNeedsApproval = false;
+					startupDeclined = false;
+					retryPaused = false;
+					lastError = "";
+					status = "Waiting for Leader";
+					policy.reset();
+					var latest:FriendInfo = friend(state.leader);
+					if (latest == null || !latest.isOnline() || !latest.isInDungeon())
+						leaderUnavailableNotice();
+					else
+						poll(true);
 					refreshRows();
 				};
 				var leaderInfo = friend(state.leader);
@@ -613,7 +647,33 @@ class Main extends Mod {
 		}
 	}
 
+	function pauseAutoJoin():Void {
+		releaseAutomationHold();
+		manualOnly = true;
+		joining = false;
+		targetId = 0;
+		state.autoJoinPaused = true;
+		state.save();
+		retryPaused = true;
+		startupNeedsApproval = false;
+		startupDeclined = true;
+		if (startupPopup != null)
+			startupPopup.destroy();
+		startupPopup = null;
+		startupDetails = null;
+		if (retryPopup != null)
+			retryPopup.destroy();
+		retryPopup = null;
+		panel.ask(false);
+		lastError = "Automatic joining paused";
+		status = "Auto join paused - click Join";
+		refreshRows();
+	}
+
 	function manualJoin():Void {
+		manualOnly = false;
+		state.autoJoinPaused = false;
+		state.save();
 		startupNeedsApproval = false;
 		startupDeclined = false;
 		if (startupPopup != null) {
@@ -648,8 +708,8 @@ class Main extends Mod {
 		if (!yes) {
 			policy.dismissed = key;
 			if (key == "manual") {
-				retryPaused = true;
-				lastError = "Manual follow declined";
+				pauseAutoJoin();
+				return;
 			}
 			status = "Follow declined";
 			return;
@@ -658,7 +718,12 @@ class Main extends Mod {
 	}
 
 	function requestJoin(confirmed:Bool):Void {
-		if (startupNeedsApproval || joining || state.leader <= 0 || state.leader == facade.accountId || leaderNode <= 0)
+		if (manualOnly
+			|| startupNeedsApproval
+			|| joining
+			|| state.leader <= 0
+			|| state.leader == facade.accountId
+			|| leaderNode <= 0)
 			return;
 		var current = facade.mainStateMachine.currentStateName;
 		if (current == "RunState" && summary == null && !confirmed)
@@ -734,6 +799,8 @@ class Main extends Mod {
 	}
 
 	function joinNow():Void {
+		if (manualOnly)
+			return;
 		if (state.leader != targetId || targetId <= 0) {
 			joining = false;
 			return;
@@ -750,6 +817,8 @@ class Main extends Mod {
 	}
 
 	function joinFailed(event:Dynamic):Void {
+		if (manualOnly)
+			return;
 		var code = Std.int(Read.number(event, "errorCode"));
 		var message = Locale.getError(code);
 		showJoinError(message + " (" + code + ")");
@@ -761,15 +830,18 @@ class Main extends Mod {
 		joinEnteredLoading = false;
 		targetId = 0;
 		retryPaused = true;
+		releaseAutomationHold();
 		status = "Join failed";
 		lastError = message;
 		if (retryPopup != null)
 			return;
 		var respond = function(yes:Bool) {
 			retryPopup = null;
-			retryPaused = !yes;
-			status = yes ? "Retrying join..." : "Auto join paused - click Join";
-			if (yes) {
+			if (!yes)
+				pauseAutoJoin();
+			else {
+				retryPaused = false;
+				status = "Retrying join...";
 				lastError = "";
 				policy.nextAttempt = Lib.getTimer() + 1500;
 				policy.dismissed = "";

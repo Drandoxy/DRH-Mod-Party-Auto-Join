@@ -14,4 +14,9 @@ with tempfile.TemporaryDirectory(prefix="party-popup-") as folder:
     package = runtime / "mods" / "party_time_auto_game_joiner"
     package.mkdir(parents=True)
     shutil.copy2(root / "src" / "FriendPopupLayout.hx", package / "FriendPopupLayout.hx")
+    shutil.copy2(root / "src" / "MemberStatus.hx", package / "MemberStatus.hx")
+    for name in ("PartyState.hx", "PartyMember.hx"):
+        shutil.copy2(root / "src" / name, package / name)
+    subprocess.run([args.haxe, "-cp", str(runtime), "-main", "PausedStateChecks", "--interp"], check=True)
+    subprocess.run([args.haxe, "-cp", str(runtime), "-main", "MemberStatusChecks", "--interp"], check=True)
     subprocess.run([args.haxe, "-cp", str(runtime), "-main", "PopupHeightChecks", "--interp"], check=True)

@@ -15,7 +15,8 @@ import openfl.geom.Rectangle;
 class GameArt {
 	public static var current:GameArt;
 
-	var facade:DBFacade;
+	public var facade(default, null):DBFacade;
+
 	var assets:AssetLoadingComponent;
 	var hud:SwfAsset;
 	var report:SwfAsset;

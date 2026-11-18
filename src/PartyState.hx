@@ -3,6 +3,7 @@ package mods.party_time_auto_game_joiner;
 class PartyState {
 	public var members:Array<PartyMember> = [];
 	public var leader = 0;
+	public var autoJoinPaused = false;
 	public var x = 35.;
 	public var y = 100.;
 	public var width = 310.;
@@ -37,6 +38,7 @@ class PartyState {
 				if (v != null && !Math.isNaN(Std.parseFloat(Std.string(v))))
 					Reflect.setField(this, n, Std.parseFloat(Std.string(v)));
 			}
+			autoJoinPaused = d.autoJoinPaused == true;
 			if (d.shown != null)
 				shown = d.shown;
 		} catch (_:Dynamic) {}
@@ -90,6 +92,7 @@ class PartyState {
 		sys.io.File.saveContent(path, haxe.Json.stringify({
 			members: members,
 			leader: leader,
+			autoJoinPaused: autoJoinPaused,
 			x: x,
 			y: y,
 			townX: townX,

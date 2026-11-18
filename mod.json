@@ -1,8 +1,8 @@
 {
   "id": "party_time_auto_game_joiner",
-  "name": "Party Time Auto Game Joiner",
+  "name": "Party Auto Join",
   "description": "A movable party panel with health bars and automatic following of a selected friend leader.",
-  "version": "0.1.47",
+  "version": "0.1.53",
   "author": "Drandox",
   "api": "1.5.0",
   "entry": "Main",
