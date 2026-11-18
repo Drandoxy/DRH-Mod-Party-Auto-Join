@@ -1,7 +1,7 @@
 # Party Auto Join
 
 <!-- drh:show -->
-Keep up to four friends in a movable panel and follow a chosen leader.
+Automatically join your chosen leader's game wherever they are, whenever joining is possible. Once auto mode is enabled, Party Auto Join follows them through floors, dungeon changes and restarts, and waits for their next game when they are in town. A movable panel keeps up to four friends and their status in view.
 
 - **Add friends:** choose **Party +** in a friend's portrait menu. Use the row menu to choose a leader or remove someone.
 - **Manual mode:** selecting a leader starts here. No automatic joining, welcome prompts or end-screen restrictions. Normal controls and Dungeon Manager automation work as usual.
