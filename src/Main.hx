@@ -12,6 +12,9 @@ import openfl.Lib;
 import openfl.ui.Keyboard;
 
 class Main extends Mod {
+	public static var integrationWaiting = false;
+	public static var integrationHeld = false;
+
 	var errorHook = new EventHook("REQUEST_ENTRY_FAILED");
 	var retryPopup:PartyDialog;
 	var noticePopup:PartyDialog;
@@ -47,9 +50,6 @@ class Main extends Mod {
 	var policy = new FollowPolicy();
 	var nextTick = 0;
 	var nextPresence = 0;
-	var markerPath:String;
-	var nextMarker = 0;
-	var markerWas = false;
 	var joining = false;
 	var joinEnteredLoading = false;
 	var sharedNode = 0;
@@ -70,11 +70,6 @@ class Main extends Mod {
 		if (!sys.FileSystem.exists(statePath) && sys.FileSystem.exists(legacyPath))
 			sys.io.File.copy(legacyPath, statePath);
 		state = new PartyState(statePath);
-		// Keep the published Dungeon Manager heartbeat contract after the mod ID rename.
-		var integrationDirectory = ctx.data + "/../party_time_auto_game_joiner";
-		if (!sys.FileSystem.exists(integrationDirectory))
-			sys.FileSystem.createDirectory(integrationDirectory);
-		markerPath = integrationDirectory + "/waiting.json";
 		clearMarker();
 		keySubscription = ctx.keys.action("toggleParty", "Toggle Party Auto Join", "Pause and hide, or show in manual mode.", Keyboard.P, true, true)
 			.onPress(toggleParty);
@@ -896,19 +891,13 @@ class Main extends Mod {
 	}
 
 	function updateMarker(waiting:Bool, now:Int):Void {
-		if ((waiting || autoHoldUntilLeave) && now >= nextMarker) {
-			nextMarker = now + 1000;
-			sys.io.File.saveContent(markerPath, haxe.Json.stringify({waiting: waiting, autoHold: autoHoldUntilLeave, time: Date.now().getTime()}));
-			markerWas = true;
-		} else if (!waiting && !autoHoldUntilLeave && markerWas)
-			clearMarker();
+		integrationWaiting = waiting;
+		integrationHeld = autoHoldUntilLeave;
 	}
 
 	function clearMarker():Void {
-		if (markerPath != null && sys.FileSystem.exists(markerPath))
-			sys.FileSystem.deleteFile(markerPath);
-		markerWas = false;
-		nextMarker = 0;
+		integrationWaiting = false;
+		integrationHeld = false;
 	}
 
 	override public function dispose():Void {
