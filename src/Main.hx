@@ -1,9 +1,8 @@
-package mods.party_time_auto_game_joiner;
+package mods.party_auto_join;
 
 import account.FriendInfo;
 import mods.api.Mod;
 import mods.api.Context;
-import mods.api._internal.Hub;
 import facade.DBFacade;
 import distributedObjects.DistributedDungeonSummary;
 import openfl.events.Event;
@@ -61,27 +60,20 @@ class Main extends Mod {
 	var promptKey = "";
 	var lastError = "";
 	var status = "";
-	var startupTraceLast = "";
-	var startupTraceSeen:Map<String, Bool> = new Map();
-	var startupTraceUntil = 0;
-
-	function startupTrace(stage:String):Void {
-		if (ctx == null
-			|| stage == startupTraceLast
-			|| startupTraceSeen.exists(stage)
-			|| (startupTraceUntil > 0 && Lib.getTimer() > startupTraceUntil))
-			return;
-		startupTraceLast = stage;
-		startupTraceSeen.set(stage, true);
-		try {
-			sys.io.File.saveContent(ctx.data + "/startup-stage.json", haxe.Json.stringify({version: "0.1.40", stage: stage, time: Date.now().toString()}));
-		} catch (_:Dynamic) {}
-	}
 
 	override public function init(context:Context):Void {
 		ctx = context;
-		state = new PartyState(ctx.data + "/party.json");
-		markerPath = ctx.data + "/waiting.json";
+		// Read old preferences once without changing the previous installation's data.
+		var statePath = ctx.data + "/party.json";
+		var legacyPath = ctx.data + "/../party_time_auto_game_joiner/party.json";
+		if (!sys.FileSystem.exists(statePath) && sys.FileSystem.exists(legacyPath))
+			sys.io.File.copy(legacyPath, statePath);
+		state = new PartyState(statePath);
+		// Keep the published Dungeon Manager heartbeat contract after the mod ID rename.
+		var integrationDirectory = ctx.data + "/../party_time_auto_game_joiner";
+		if (!sys.FileSystem.exists(integrationDirectory))
+			sys.FileSystem.createDirectory(integrationDirectory);
+		markerPath = integrationDirectory + "/waiting.json";
 		clearMarker();
 		keySubscription = ctx.keys.action("toggleParty", "Toggle Party Auto Join", "Pause and hide, or show in manual mode.", Keyboard.P, true, true)
 			.onPress(toggleParty);
@@ -89,8 +81,7 @@ class Main extends Mod {
 
 	override public function ready(context:Context):Void {
 		facade = ctx.core.facade;
-		startupTraceUntil = Lib.getTimer() + 20000;
-		startupTrace("ready");
+
 		if (state.contains(facade.accountId))
 			state.remove(facade.accountId);
 		manualOnly = state.autoJoinPaused;
@@ -150,19 +141,19 @@ class Main extends Mod {
 	function startParty():Void {
 		if (panel != null)
 			return;
-		startupTrace("party-art");
+
 		dialogArt = new DialogArt(facade);
 		art = new GameArt(facade);
-		startupTrace("party-panel");
+
 		panel = new PartyPanel(ctx, state);
 		panel.onManualJoin = manualJoin;
 		panel.onPauseJoin = pauseAutoJoin;
 		panel.onLeader = setLeader;
 		panel.onRemove = removeMember;
 		panel.onFollow = answer;
-		startupTrace("party-rows-build");
+
 		panel.rebuild();
-		startupTrace("party-watchers");
+
 		presenceEvents = new EventComponent(facade);
 		presenceEvents.addListener("PlayerExitEvent_str", leaderExitedResults);
 		presenceEvents.addListener("REFRESH_FRIENDS_EVENT", function(_) {
@@ -429,7 +420,7 @@ class Main extends Mod {
 			return;
 		// Empty roster: only discover native friend buttons; no presence polling,
 		// game-object watchers, portraits, panel animations or asset bundles.
-		startupTrace("friend-button-tick");
+
 		addButton.tick();
 		if (state.members.length == 0) {
 			if (autoHoldUntilLeave) {
@@ -475,12 +466,11 @@ class Main extends Mod {
 		lock.apply(summary, waiting);
 		if (now >= nextPresence) {
 			nextPresence = now + 1000;
-			startupTrace("presence-poll");
+
 			poll(false);
 		}
-		startupTrace("rows-refresh");
+
 		refreshRows();
-		startupTrace("frame-complete");
 	}
 
 	function leaderExitedResults(event:Dynamic):Void {
@@ -580,7 +570,7 @@ class Main extends Mod {
 					url: url == null ? "" : Std.string(url),
 					portrait: null
 				};
-				startupTrace("startup-dialog");
+
 				startupPromptNode = node;
 				var startupQuestion:String = leaderReturnedPrompt ? "Your leader is online again. Join them?" : "Start automatically joining your leader?";
 				startupPopup = new PartyDialog(ctx, "Party Time", startupQuestion, startupDetails, function() {
@@ -588,7 +578,6 @@ class Main extends Mod {
 				}, function() {
 					respond(false);
 				});
-				startupTrace("startup-dialog-ready");
 			}
 			return;
 		}

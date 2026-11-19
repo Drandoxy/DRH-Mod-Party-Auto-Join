@@ -1,4 +1,4 @@
-package mods.party_time_auto_game_joiner;
+package mods.party_auto_join;
 
 /** Only leave a summary after its normal reward and inventory work has settled. */
 class SummaryRules {

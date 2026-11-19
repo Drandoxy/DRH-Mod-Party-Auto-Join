@@ -1,4 +1,4 @@
-import mods.party_time_auto_game_joiner.MemberStatus;
+import mods.party_auto_join.MemberStatus;
 class MemberStatusChecks {
  static function main() {
   if (MemberStatus.label(true, true, false, null, true) != "At results") throw "results replaced by town";

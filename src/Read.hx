@@ -1,4 +1,4 @@
-package mods.party_time_auto_game_joiner;
+package mods.party_auto_join;
 
 class Read {
 	public static function get(o:Dynamic, n:String):Dynamic {

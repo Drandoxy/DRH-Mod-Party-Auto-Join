@@ -1,4 +1,4 @@
-package mods.party_time_auto_game_joiner;
+package mods.party_auto_join;
 
 import facade.DBFacade;
 import brain.assetRepository.AssetLoadingComponent;

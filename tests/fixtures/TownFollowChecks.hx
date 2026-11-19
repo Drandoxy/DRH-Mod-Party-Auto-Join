@@ -1,4 +1,4 @@
-import mods.party_time_auto_game_joiner.FollowPolicy;
+import mods.party_auto_join.FollowPolicy;
 class TownFollowChecks {
     static function main() {
         if (FollowPolicy.waitForDeparture(false, true, false)) throw "Town blocked by stale session";

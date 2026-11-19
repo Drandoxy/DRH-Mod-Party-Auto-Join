@@ -1,4 +1,4 @@
-package mods.party_time_auto_game_joiner;
+package mods.party_auto_join;
 
 class PartyState {
 	public var members:Array<PartyMember> = [];
@@ -8,11 +8,11 @@ class PartyState {
 	public var y = 100.;
 	public var width = 310.;
 	public var height = 290.;
-	public var shown = false;
+	public var shown = true;
 	public var townX = 35.;
 	public var townY = 100.;
 	public var runX = 35.;
-	public var runY = 100.;
+	public var runY = 240.;
 
 	var path:String;
 
@@ -32,7 +32,8 @@ class PartyState {
 					Reflect.setField(this, n, Std.parseFloat(Std.string(v)));
 			}
 			townX = runX = x;
-			townY = runY = y;
+			townY = y;
+			// Legacy files without separate dungeon coordinates use the safe default.
 			for (n in ["townX", "townY", "runX", "runY"]) {
 				var v = Reflect.field(d, n);
 				if (v != null && !Math.isNaN(Std.parseFloat(Std.string(v))))

@@ -1,4 +1,4 @@
-import mods.party_time_auto_game_joiner.FriendPopupLayout;
+import mods.party_auto_join.FriendPopupLayout;
 import openfl.display.MovieClip;
 import openfl.geom.Rectangle;
 class BoundsClip extends MovieClip {

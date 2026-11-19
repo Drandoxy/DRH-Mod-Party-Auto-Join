@@ -11,7 +11,7 @@ root = Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix="party-popup-") as folder:
     runtime = Path(folder)
     shutil.copytree(root / "tests" / "fixtures", runtime, dirs_exist_ok=True)
-    package = runtime / "mods" / "party_time_auto_game_joiner"
+    package = runtime / "mods" / "party_auto_join"
     package.mkdir(parents=True)
     shutil.copy2(root / "src" / "FriendPopupLayout.hx", package / "FriendPopupLayout.hx")
     shutil.copy2(root / "src" / "MemberStatus.hx", package / "MemberStatus.hx")

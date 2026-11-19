@@ -1,4 +1,4 @@
-package mods.party_time_auto_game_joiner;
+package mods.party_auto_join;
 
 /** Presence exposes a map node, not a server instance ID. */
 class FollowPolicy {
