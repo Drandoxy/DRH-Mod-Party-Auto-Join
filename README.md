@@ -11,7 +11,7 @@ Automatically join your chosen leader's game wherever they are, whenever joining
 - **Pause Auto Join** returns to manual mode.
 - **Ctrl+Shift+P** pauses and hides the panel, stopping background work. Press again to show it in **manual mode**. Your roster and leader are kept.
 
-Hold a row for half a second to drag it. Town and dungeon positions save separately. Rows show friend status, or hero health/mana when playing together. No party invitations are sent.
+Hold a row for half a second to drag it. Town and dungeon positions save separately. Rows show friend status, or hero health/mana when playing together. No party invitations are sent. Between stages, recent companions keep their last hero display for up to five seconds while loading; if they have not arrived by then, their row turns grey. This display grace does not change automatic joining or the leader-offline timer.
 
 Upgrading from the previous mod ID: disable or remove the old Party Time Auto Game Joiner copy to avoid running both. Existing party preferences are copied on first launch when available.
 

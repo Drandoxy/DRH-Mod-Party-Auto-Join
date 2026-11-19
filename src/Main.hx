@@ -32,6 +32,7 @@ class Main extends Mod {
 	var presenceEvents:EventComponent;
 	var art:GameArt;
 	var dialogArt:DialogArt;
+	var stagePresence = new StagePresence();
 	var heroSnapshots:haxe.ds.IntMap<Dynamic> = new haxe.ds.IntMap();
 	var ctx:Context;
 	var keySubscription:Dynamic;
@@ -223,6 +224,7 @@ class Main extends Mod {
 			art = null;
 		}
 		heroSnapshots.clear();
+		stagePresence.reset();
 		summary = null;
 		joining = false;
 		// Preserve Dungeon Manager's automatic-action hold until leaving this run.
@@ -367,6 +369,9 @@ class Main extends Mod {
 		panel.autoJoining = state.leader > 0 && state.shown && !manualOnly && !retryPaused && !startupNeedsApproval;
 		var data:Array<Dynamic> = [];
 		var running = facade.mainStateMachine.currentStateName == "RunState" || summary != null;
+		var now = Lib.getTimer();
+		var floor = ctx.state.floor;
+		stagePresence.observe(floor == null ? "" : floor.map, floor == null ? 0 : floor.number, running && summary == null && !joining, now);
 		if (!running) {
 			heroSnapshots.clear();
 			resultDepartures.clear();
@@ -376,7 +381,8 @@ class Main extends Mod {
 			if (m.id == facade.accountId && f == null)
 				f = facade.dbAccountInfo.localFriendInfo;
 			var hero = here(m.id);
-			if (hero != null)
+			if (hero != null) {
+				stagePresence.present(m.id, now);
 				heroSnapshots.set(m.id, {
 					skinType: Read.number(hero, "skinType", 151),
 					hitPoints: Read.number(hero, "hitPoints"),
@@ -384,7 +390,7 @@ class Main extends Mod {
 					manaPoints: Read.number(hero, "manaPoints"),
 					maxManaPoints: Read.number(hero, "maxManaPoints", 1)
 				});
-			else if (summary != null) {
+			} else if (summary != null) {
 				var savedHero = heroSnapshots.get(m.id);
 				if (savedHero != null)
 					hero = {
@@ -403,11 +409,17 @@ class Main extends Mod {
 			var departed = summary != null && resultDepartures.exists(m.id);
 			if (departed)
 				hero = null;
-			label = MemberStatus.label(online, hero != null && !departed, f != null && f.isInDungeon(), f == null ? null : f.dungeonName, summary != null);
+			var loading = hero == null && !departed && stagePresence.loading(m.id, now);
+			if (loading)
+				hero = heroSnapshots.get(m.id);
+			label = MemberStatus.label(online || loading, hero != null && !departed, f != null && f.isInDungeon(), f == null ? null : f.dungeonName,
+				summary != null);
+			if (loading)
+				label = "Loading next stage...";
 			data.push({
 				friend: f,
-				hero: online ? hero : null,
-				online: online,
+				hero: online || loading ? hero : null,
+				online: online || loading,
 				status: label,
 				actionStatus: actionStatus,
 				manual: online && m.id == state.leader && retryPaused && retryPopup == null && lastError != ""});
