@@ -14,6 +14,15 @@ class SummaryRules {
 			return "Waiting for dungeon rewards.";
 		if (items > 0)
 			return "Keep, open or abandon your remaining crates before repeating.";
+		var report:Dynamic = Reflect.field(summary, "mDungeonReport");
+		var row:Dynamic = report == null ? null : report[0];
+		if (row == null || Reflect.field(row, "valid") == null || Reflect.field(row, "valid") == 0)
+			return "Waiting for confirmed reward data.";
+		for (slot in 1...5) {
+			var chest:Dynamic = Reflect.field(row, "chest_type_" + slot);
+			if (chest == null || chest != 0)
+				return "Waiting for all chest transactions.";
+		}
 		if (dialogsOpen(summary))
 			return "Finish the open summary dialog before restarting.";
 		return null;

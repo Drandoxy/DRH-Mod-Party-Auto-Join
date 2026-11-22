@@ -67,7 +67,7 @@ class PartyRow extends Sprite {
 		profile.mask = profileMask;
 		heroPic.mask = heroMask;
 		nameLabel = Theme.text(this, member.name, 13);
-		info = Theme.text(this, "In town", 11, 0xD2C0A2);
+		info = Theme.text(this, "In Town", 11, 0xD2C0A2);
 		addChild(bars);
 		hpLabel = Theme.text(this, "", 11, 0xFFFFFF);
 		mpLabel = Theme.text(this, "", 10, 0xFFFFFF);

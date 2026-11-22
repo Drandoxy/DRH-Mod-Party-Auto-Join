@@ -20,6 +20,15 @@ class Main extends Mod {
 	var noticePopup:PartyDialog;
 	var retryPaused = false;
 	var manualOnly = false;
+	var leaveWithLeader:mods.api.settings.Flag;
+	var waitInDungeon:mods.api.settings.Flag;
+	var returningWithLeader = false;
+	var rewardsReadySince = -1;
+	var rewardHoldStarted = -1;
+	var rewardHoldDone = false;
+	var integrationMarker:openfl.display.Sprite;
+	var lastScene = "";
+	var leaderMissingSince = -1;
 	var pendingExitCallback = false;
 	var leaderWasHere = false;
 	var leaderDepartureSeen = false;
@@ -52,18 +61,30 @@ class Main extends Mod {
 	var nextPresence = 0;
 	var joining = false;
 	var joinEnteredLoading = false;
+	/** When this client arrived in RunState after a join, or -1. */
+	var joinArrivedAt = -1.;
+	/** The leader's presence changed while this client was loading into their game. */
+	var movedDuringJoin = false;
+	/** False while the floor arrival guard waits for the floor's data. */
+	var floorSettled = true;
 	var sharedNode = 0;
 	var joinDeadline = 0;
 	var targetId = 0;
 	var leaderNode = 0;
 	var presenceEpoch = 0;
 	var lastNode = 0;
+	/** Presence changed while the leader was not in this dungeon: they started another game. */
+	var leaderMovedSinceHere = false;
+	var attemptEpoch = -1;
 	var promptKey = "";
 	var lastError = "";
 	var status = "";
 
 	override public function init(context:Context):Void {
 		ctx = context;
+		waitInDungeon = ctx.settings.flag("waitInDungeon", "Wait in current dungeon",
+			"Stay in a live dungeon when a party member is absent or offline. Town and result-screen joining remain available.", false);
+		leaveWithLeader = ctx.settings.flag("leaveWithLeader", "Auto follow everywhere", "Automatically follow your leader between dungeons and Town.", false);
 		// Read old preferences once without changing the previous installation's data.
 		var statePath = ctx.data + "/party.json";
 		var legacyPath = ctx.data + "/../party_time_auto_game_joiner/party.json";
@@ -99,7 +120,7 @@ class Main extends Mod {
 		if (addButton != null)
 			return;
 		addButton = new FriendButton(facade, addMember, function(message) {
-			ctx.log(message);
+			note(message);
 		});
 		addButton.contains = state.contains;
 		addButton.remove = removeMember;
@@ -157,10 +178,8 @@ class Main extends Mod {
 			if (state.leader > 0)
 				poll(true);
 		});
-		subscriptions.push(ctx.core.onFieldReceived(function(object, id, name) {
-			if (facade != null && state.leader > 0 && Std.string(name).indexOf("PresenceManager.friendState") >= 0)
-				poll(true);
-		}));
+		// Presence is polled once per second. Avoid reentrant joins from field dispatch.
+
 		subscriptions.push(ctx.core.onStateEnter(function(machine, state) {
 			if (joining && state.name == "LoadingScreenState") {
 				var events:EventComponent = cast Read.get(state, "mEventComponent");
@@ -175,6 +194,8 @@ class Main extends Mod {
 			if (Std.isOfType(o, DistributedDungeonSummary)) {
 				resultDepartures.clear();
 				summary = o;
+				rewardHoldDone = false;
+				beginRewardHold();
 			}
 		}));
 		subscriptions.push(ctx.core.onObjectGone(function(o) {
@@ -183,6 +204,11 @@ class Main extends Mod {
 				summary = null;
 			}
 		}));
+	}
+
+	/** Writes to the game log. */
+	function note(message:String):Void {
+		ctx.log(message);
 	}
 
 	function stopParty():Void {
@@ -243,7 +269,7 @@ class Main extends Mod {
 			return;
 		}
 		if (id <= 0) {
-			ctx.log("Party + could not resolve selected friend ID");
+			note("Party + could not resolve selected friend ID");
 			showNotification("The selected friend is not ready yet. Reopen their portrait menu and try again.");
 			return;
 		}
@@ -258,7 +284,7 @@ class Main extends Mod {
 			return;
 		}
 		startParty();
-		ctx.log("Party + added friend " + id);
+		note("Party + added friend " + id);
 		state.shown = true;
 		state.save();
 		panel.visible = true;
@@ -306,6 +332,7 @@ class Main extends Mod {
 		policy.reset();
 		retryPaused = false;
 		leaderWasHere = false;
+		leaderMovedSinceHere = false;
 		leaderDepartureSeen = false;
 		sharedNode = 0;
 		lastNode = 0;
@@ -355,6 +382,13 @@ class Main extends Mod {
 				if (h != null)
 					return h;
 			}
+		// The player list may lag a floor transition; live hero records are independent evidence.
+		for (entry in ctx.state.heroes)
+			if (!entry.local && entry.player != null && entry.player.accountId == id) {
+				var h = manager.getReferenceFromId(entry.id);
+				if (h != null && Read.get(h, "isDestroyed") != true)
+					return h;
+			}
 		return null;
 	}
 
@@ -400,7 +434,7 @@ class Main extends Mod {
 			if (m.id == state.leader && status != "")
 				label = status;
 			var actionStatus = label;
-			var online = f != null && f.isOnline();
+			var online = MemberStatus.online(f != null && f.isOnline(), hero != null && summary == null);
 			var departed = summary != null && resultDepartures.exists(m.id);
 			if (departed)
 				hero = null;
@@ -439,6 +473,21 @@ class Main extends Mod {
 			return;
 		}
 		var scene = facade.mainStateMachine.currentStateName;
+		if (scene == "TownState" && lastScene != "TownState") {
+			returningWithLeader = false;
+			returningForOffline = false;
+			pendingExitCallback = false;
+			joining = false;
+			joinEnteredLoading = false;
+			targetId = 0;
+			leaderWasHere = false;
+			leaderMovedSinceHere = false;
+			leaderDepartureSeen = true;
+			sharedNode = 0;
+			policy.reset();
+			nextPresence = 0;
+		}
+		lastScene = scene;
 		if (scene == "TownState")
 			autoHoldUntilLeave = false;
 		panel.visible = state.shown
@@ -450,7 +499,7 @@ class Main extends Mod {
 		if (now < nextTick)
 			return;
 		nextTick = now + 100;
-		if (joining && now > joinDeadline) {
+		if (joining && FollowPolicy.joinTimedOut(now, joinDeadline, !manualOnly)) {
 			showJoinError("The join request timed out before entry was confirmed.");
 		}
 		if (joining
@@ -463,7 +512,28 @@ class Main extends Mod {
 			policy.failures = 0;
 			leaderDepartureSeen = false;
 			status = "In your dungeon";
+			joinArrivedAt = -1;
+			movedDuringJoin = false;
 		}
+		// Arrived, but the leader is not in this instance: they restarted or moved while this
+		// client was loading. End the join so following can act on it, at once if their
+		// presence changed meanwhile, otherwise after the normal arrival grace.
+		if (joining
+			&& joinEnteredLoading
+			&& facade.mainStateMachine.currentStateName == "RunState"
+			&& summary == null
+			&& here(state.leader) == null) {
+			if (joinArrivedAt < 0)
+				joinArrivedAt = now;
+			if (movedDuringJoin || floorSettled && now - joinArrivedAt >= 1000 || now - joinArrivedAt >= 6000) {
+				note(["Auto follow: arrived without the leader", "movedDuringJoin " + movedDuringJoin, "after " + Std.int(now - joinArrivedAt) + " ms"].join(" "));
+				joining = false;
+				targetId = 0;
+				joinArrivedAt = -1;
+				policy.nextAttempt = 0;
+			}
+		} else if (!joining)
+			joinArrivedAt = -1;
 		if (summary == null && here(state.leader) != null)
 			leaderWasHere = true;
 		var waiting = followingLeader();
@@ -472,7 +542,8 @@ class Main extends Mod {
 		updateMarker(waiting, now);
 		lock.apply(summary, waiting);
 		if (now >= nextPresence) {
-			nextPresence = now + 1000;
+			// Presence is a local cache; check it often while auto following so a move is acted on at once.
+			nextPresence = now + (leaveWithLeader != null && leaveWithLeader.value ? 250 : 1000);
 
 			poll(false);
 		}
@@ -491,12 +562,64 @@ class Main extends Mod {
 			return;
 		leaderDepartureSeen = true;
 		policy.nextAttempt = Math.max(policy.nextAttempt, Lib.getTimer() + 1500);
-		ctx.log("Leader left the results session; following their next joinable game, including the same dungeon.");
+		note("Leader left the results session; following their next joinable game, including the same dungeon.");
+	}
+
+	function beginRewardHold():Void {
+		if (rewardHoldStarted < 0 && !rewardHoldDone) {
+			rewardHoldStarted = Lib.getTimer();
+			rewardsReadySince = -1;
+		}
+	}
+
+	function holdForRewards():Bool {
+		var scene = facade.mainStateMachine.currentStateName;
+		if (scene == "TownState") {
+			rewardHoldStarted = -1;
+			rewardHoldDone = false;
+			rewardsReadySince = -1;
+			return false;
+		}
+		if (summary != null)
+			beginRewardHold();
+		if (ctx != null && ctx.state.floor != null && facade.gameObjectManager != null) {
+			var floor = facade.gameObjectManager.getReferenceFromId(ctx.state.floor.id);
+			var gui = Read.get(floor, "mFloorEndingGui");
+			var renderer = Read.get(gui, "mVictoryRenderer");
+			if (Read.get(Read.get(renderer, "clip"), "visible") == true)
+				beginRewardHold();
+		}
+		if (rewardHoldStarted < 0)
+			return false;
+
+		if (summary != null && SummaryRules.blocked(summary) == null) {
+			if (rewardsReadySince < 0)
+				rewardsReadySince = Lib.getTimer();
+			if (Lib.getTimer() - rewardsReadySince >= 1000) {
+				rewardHoldDone = true;
+				rewardHoldStarted = -1;
+				return false;
+			}
+		} else
+			rewardsReadySince = -1;
+		status = "Waiting for rewards";
+		return true;
 	}
 
 	function poll(force:Bool):Void {
-		if (manualOnly)
+		var waitHere = waitInDungeon != null && waitInDungeon.value;
+		if (FollowPolicy.waitingCurrent(facade.mainStateMachine.currentStateName == "RunState", waitHere, summary != null)) {
+			leaderOfflineAt = leaderMissingSince = -1;
+			policy.reset();
+			status = "Waiting for friend - no time limit";
 			return;
+		}
+		if (manualOnly) {
+			return;
+		}
+		if (holdForRewards()) {
+			return;
+		}
 		if (state.leader <= 0 || state.leader == facade.accountId) {
 			leaderNode = 0;
 			panel.ask(false);
@@ -507,6 +630,10 @@ class Main extends Mod {
 		if (node != lastNode) {
 			if (leaderWasHere && (lastNode > 0 || node == 0))
 				leaderDepartureSeen = true;
+			if (leaderWasHere && here(state.leader) == null)
+				leaderMovedSinceHere = true;
+			if (joining && node > 0)
+				movedDuringJoin = true;
 			presenceEpoch++;
 			lastNode = node;
 			promptKey = "";
@@ -515,10 +642,38 @@ class Main extends Mod {
 		leaderNode = node;
 		var key = state.leader + ":" + node + ":" + presenceEpoch;
 		var current = facade.mainStateMachine.currentStateName;
-		var transition = current != "TownState" && current != "RunState";
+		var preserveRun = policy.preserveRestrictedRun(ctx.state.floor == null ? null : ctx.state.floor.map, current == "TownState", summary != null);
+		if (preserveRun && followingLeader()) {
+			policy.confirmedTown(Lib.getTimer(), state.leader, false, false, true, node, false);
+			policy.confirmedAway(Lib.getTimer(), false, false, node, node, false, true);
+			leaderOfflineAt = -1;
+			leaderMissingSince = -1;
+			panel.ask(false);
+			status = "Staying in Ultimate Rampage";
+			return;
+		}
+		var nativeStage = ctx.state.floor == null ? null : facade.gameObjectManager.getReferenceFromId(ctx.state.floor.id);
+		var endingGui = Read.get(nativeStage, "mFloorEndingGui");
+		// Floor data is complete once its interest closure arrived and the local hero exists.
+		var localHeroReady = false;
+		for (entry in ctx.state.heroes)
+			if (entry.local)
+				localHeroReady = true;
+		var floorDataReady = localHeroReady && Read.get(nativeStage, "pastInitialLoad") == true;
+		var stageChanging = policy.stageGuard(Lib.getTimer(), ctx.state.floor == null ? 0 : Std.int(ctx.state.floor.id),
+			Read.get(endingGui, "mUpdateCountdownTask") != null, current == "RunState" && summary == null, floorDataReady);
+		var transition = (current != "TownState" && current != "RunState") || stageChanging;
+		floorSettled = current == "RunState" && !stageChanging;
 		var inRun = current == "RunState";
 		var promptFriend:FriendInfo = friend(state.leader);
 		var leaderJoinable = promptFriend != null && promptFriend.isOnline() && promptFriend.isInDungeon() && node > 0;
+		if (current != "RunState" && current != "TownState") {
+			policy.confirmedTown(Lib.getTimer(), state.leader, false, false, true, node, false);
+			policy.confirmedAway(Lib.getTimer(), false, false, node, node, false, true);
+			leaderOfflineAt = -1;
+			leaderMissingSince = -1;
+			return;
+		}
 		if (startupPopup != null && (!leaderJoinable || current != "TownState" || node != startupPromptNode)) {
 			startupPopup.destroy();
 			startupPopup = null;
@@ -527,6 +682,22 @@ class Main extends Mod {
 			// Presence invalidation is not a Yes/No response. Keep consent pending.
 			startupNeedsApproval = true;
 			startupDeclined = false;
+		}
+		if (startupNeedsApproval
+			&& FollowPolicy.acceptsStartup(leaveWithLeader != null && leaveWithLeader.value, manualOnly, state.leader, facade.accountId)) {
+			if (startupPopup != null)
+				startupPopup.destroy();
+			startupPopup = null;
+			startupDetails = null;
+			startupPromptNode = 0;
+			startupNeedsApproval = false;
+			startupDeclined = false;
+			leaderReturnedPrompt = false;
+			retryPaused = false;
+			lastError = "";
+			status = "Waiting for Leader";
+			policy.reset();
+			note("Auto follow everywhere accepted leader following.");
 		}
 		if (startupNeedsApproval) {
 			if (!startupDeclined && startupPopup == null && leaderJoinable && current == "TownState") {
@@ -588,8 +759,10 @@ class Main extends Mod {
 			}
 			return;
 		}
+		if (holdForRewards())
+			return;
 		var leaderInfo = friend(state.leader);
-		var leaderOffline = leaderInfo != null && !leaderInfo.isOnline();
+		var leaderOffline = !stageChanging && leaderInfo != null && !leaderInfo.isOnline();
 		if (leaderOffline && (inRun || summary != null) && !joining) {
 			if (leaderOfflineAt < 0)
 				leaderOfflineAt = Lib.getTimer();
@@ -598,12 +771,56 @@ class Main extends Mod {
 			return;
 		} else
 			leaderOfflineAt = -1;
+
+		if (here(state.leader) != null)
+			leaderMissingSince = -1;
+		else if (leaderMissingSince < 0)
+			leaderMissingSince = Lib.getTimer();
+		// After the floor's data arrived, a missing leader is final; town still needs one second
+		// of town presence because a restart passes through town for a fraction of a second.
+		var townEvidenceReady = !transition && leaderMissingSince >= 0;
+		var townConfirmed = policy.confirmedTown(Lib.getTimer(),
+			state.leader, leaveWithLeader != null && leaveWithLeader.value && followingLeader() && !joining && !stageChanging && townEvidenceReady, leaderInfo != null
+			&& leaderInfo.isOnline(), leaderInfo == null || leaderInfo.isInDungeon(), node, here(state.leader) != null);
+		if (returningWithLeader)
+			return;
+		if (townConfirmed && (inRun || summary != null)) {
+			returnWithLeader();
+			return;
+		}
 		if (returningForOffline || retryPaused || retryPopup != null)
 			return;
+
+		var currentNode:Float = sharedNode > 0 ? sharedNode : node;
+		// Use the public floor map's GM map node ID when available, never its displayed name.
+		if (ctx.state.floor != null) {
+			var nativeFloor = facade.gameObjectManager.getReferenceFromId(ctx.state.floor.id);
+			var nodeData = Read.get(nativeFloor, "gmMapNode");
+			var knownNode = Read.number(nodeData, "Id");
+			if (knownNode > 0)
+				currentNode = knownNode;
+		}
+		// Proof the leader started another game: their presence changed after they left this
+		// dungeon (another dungeon, or town and back into the same one: a new instance).
+		var skipGrace = inRun && movedDuringJoin && !joining;
+		var leaderMoved = inRun && (leaderMovedSinceHere || skipGrace);
+		if (policy.confirmedAway(Lib.getTimer(), leaveWithLeader != null && leaveWithLeader.value && followingLeader() && !joining && (!stageChanging || skipGrace), leaderInfo != null
+			&& leaderInfo.isOnline(), node, Std.int(currentNode), here(state.leader) != null, skipGrace ? false : transition, leaderMoved)) {
+			movedDuringJoin = false;
+			leaderDepartureSeen = true;
+			// A new leader move is never held back by the retry backoff of an earlier attempt.
+			if (Lib.getTimer() >= policy.nextAttempt || attemptEpoch != presenceEpoch) {
+				note(["Auto follow: leader left this dungeon, node " + node, "here node " + Std.int(currentNode), "moved " + leaderMovedSinceHere].join(" "));
+				status = "Following leader...";
+				requestJoin(true);
+			}
+			return;
+		}
 		if (inRun && here(state.leader) != null) {
 			sharedNode = node;
 			leaderWasHere = true;
 			leaderDepartureSeen = false;
+			leaderMovedSinceHere = false;
 		}
 		if (FollowPolicy.waitForDeparture(inRun, leaderWasHere, leaderDepartureSeen) && sharedNode > 0 && node == sharedNode) {
 			panel.ask(false);
@@ -618,10 +835,16 @@ class Main extends Mod {
 			|| joining, key);
 		if (action == "ask") {
 			promptKey = key;
+			if (leaveWithLeader != null && leaveWithLeader.value) {
+				// Auto follow everywhere decides on its own; never show the follow prompt.
+				panel.ask(false);
+				status = "Following leader...";
+				return;
+			}
 			panel.ask(true);
 			status = "Leader is in another dungeon";
 		} else if (action == "join") {
-			if (summary != null && SummaryRules.blocked(summary) != null) {
+			if (summary != null && !rewardHoldDone && SummaryRules.blocked(summary) != null) {
 				status = "Finish collecting your rewards";
 				return;
 			}
@@ -634,7 +857,41 @@ class Main extends Mod {
 			status = "Waiting for Leader";
 	}
 
+	function returnWithLeader():Void {
+		if (holdForRewards())
+			return;
+		returningWithLeader = true;
+		panel.ask(false);
+		status = "Following leader to Town";
+		var machine = facade.mainStateMachine;
+		pendingExitCallback = true;
+		machine.setOneShotReloadTownCallback(function() {
+			pendingExitCallback = false;
+			returningWithLeader = false;
+			machine.enterTownState();
+			policy.reset();
+			leaderWasHere = false;
+			leaderMovedSinceHere = false;
+			leaderDepartureSeen = true;
+			nextPresence = 0;
+			if (ctx.core.alive && followingLeader())
+				poll(true);
+		});
+		try {
+			facade.dbAccountInfo.dbAccountParams.flushParams();
+			facade.mDistributedObjectManager.mMatchMaker.RequestExit();
+		} catch (error:Dynamic) {
+			pendingExitCallback = false;
+			returningWithLeader = false;
+			machine.setOneShotReloadTownCallback(machine.enterTownState);
+			policy.reset();
+			note("Could not follow leader to town: " + Std.string(error));
+		}
+	}
+
 	function returnAfterLeaderOffline():Void {
+		if (holdForRewards())
+			return;
 		returningForOffline = true;
 		startupNeedsApproval = true;
 		startupDeclined = false;
@@ -653,7 +910,7 @@ class Main extends Mod {
 			leaderOfflineAt = -1;
 			machine.enterTownState();
 			if (ctx.core.alive)
-				showNotification(name + " has left the game. You have returned to town.");
+				showNotification(name + " has left the game. You have returned to Town.");
 		});
 		try {
 			if (summary != null) {
@@ -671,7 +928,7 @@ class Main extends Mod {
 			returningForOffline = false;
 			machine.setOneShotReloadTownCallback(machine.enterTownState);
 			leaderOfflineAt = Lib.getTimer();
-			ctx.log("Leader offline: could not return to town: " + Std.string(error));
+			note("Leader offline: could not return to town: " + Std.string(error));
 		}
 	}
 
@@ -748,6 +1005,8 @@ class Main extends Mod {
 	}
 
 	function requestJoin(confirmed:Bool):Void {
+		if (holdForRewards())
+			return;
 		if (manualOnly
 			|| startupNeedsApproval
 			|| joining
@@ -776,11 +1035,15 @@ class Main extends Mod {
 				return;
 			}
 		}
-		ctx.log("Following leader: requesting join from " + current + " to dungeon node " + leaderNode);
+		note("Following leader: requesting join from " + current + " to dungeon node " + leaderNode);
 		joining = true;
+		leaderMovedSinceHere = false;
+		movedDuringJoin = false;
+		joinArrivedAt = -1;
 		joinEnteredLoading = false;
 		targetId = state.leader;
 		joinDeadline = Lib.getTimer() + 60000;
+		attemptEpoch = presenceEpoch;
 		policy.delay(Lib.getTimer());
 		panel.ask(false);
 		try {
@@ -799,7 +1062,7 @@ class Main extends Mod {
 				}
 				joinNow();
 			});
-			if (summary != null) {
+			if (summary != null && !(confirmed && leaveWithLeader != null && leaveWithLeader.value)) {
 				var section = Read.get(summary, "mNextFloorSection");
 				var callback = Read.get(section, "mCallback");
 				if (!Reflect.isFunction(callback))
@@ -821,13 +1084,8 @@ class Main extends Mod {
 		startupDeclined = false;
 		retryPaused = false;
 		lastError = "";
+		// No popup: the party panel already shows where the leader is (In Town or offline).
 		status = "Waiting for Leader";
-		var latest:FriendInfo = friend(state.leader);
-		var online = latest != null && latest.isOnline();
-		var message = online ? "Sorry, your leader is in town now, so their game could not be joined. "
-			+ "Once they start a game, you will join automatically." : "Your leader is no longer online, so their game could not be joined. "
-			+ "Following remains enabled; you will be asked again when they return and start a game.";
-		showNotification(message);
 	}
 
 	function joinNow():Void {
@@ -893,11 +1151,24 @@ class Main extends Mod {
 	function updateMarker(waiting:Bool, now:Int):Void {
 		integrationWaiting = waiting;
 		integrationHeld = autoHoldUntilLeave;
+		if (integrationMarker == null && ctx != null && ctx.core.overlay != null) {
+			integrationMarker = new openfl.display.Sprite();
+			integrationMarker.visible = false;
+			integrationMarker.mouseEnabled = false;
+			integrationMarker.mouseChildren = false;
+			integrationMarker.name = "party_auto_join_progression_hold";
+			ctx.core.overlay.addChild(integrationMarker);
+		}
+		if (integrationMarker != null)
+			integrationMarker.alpha = waiting ? 1 : (autoHoldUntilLeave ? 0.5 : 0);
 	}
 
 	function clearMarker():Void {
 		integrationWaiting = false;
 		integrationHeld = false;
+		if (integrationMarker != null && integrationMarker.parent != null)
+			integrationMarker.parent.removeChild(integrationMarker);
+		integrationMarker = null;
 	}
 
 	override public function dispose():Void {

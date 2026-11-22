@@ -1,11 +1,54 @@
 import mods.party_auto_join.FollowPolicy;
 class TownFollowChecks {
     static function main() {
+        if(!FollowPolicy.waitingCurrent(true,true,false)||FollowPolicy.waitingCurrent(false,true,false)||FollowPolicy.waitingCurrent(true,true,true))throw "Current-dungeon wait guard leaked into town/results";
+        if(FollowPolicy.joinTimedOut(999999,1,true)||!FollowPolicy.joinTimedOut(999999,1,false))throw "automatic party join timed out";
         if (FollowPolicy.waitForDeparture(false, true, false)) throw "Town blocked by stale session";
         if (!FollowPolicy.waitForDeparture(true, true, false)) throw "Active shared session must wait";
         if (FollowPolicy.waitForDeparture(true, true, true)) throw "Leader departure must release wait";
+        if(!FollowPolicy.acceptsStartup(true,false,2,1))throw "follow everywhere did not auto accept";
+        if(FollowPolicy.acceptsStartup(false,false,2,1))throw "disabled option bypassed prompt";
+        if(FollowPolicy.acceptsStartup(true,true,2,1))throw "manual pause overridden";
+        if(FollowPolicy.acceptsStartup(true,false,0,1)||FollowPolicy.acceptsStartup(true,false,1,1))throw "invalid leader accepted";
         var policy = new FollowPolicy();
         if (policy.decide(10000, 2, 1, 5, false, false, false, false, "2:5") != "join") throw "Town must join";
+        if(policy.confirmedTown(0,2,true,true,false,0,false))throw "unconfirmed town";
+        if(policy.confirmedTown(500,2,true,true,false,0,false))throw "early town";
+        if(!policy.confirmedTown(2000,2,true,true,false,0,false))throw "confirmed town ignored";
+        if(policy.confirmedTown(3000,2,true,true,true,5,false))throw "dungeon not reset";
+        if(policy.confirmedTown(4000,2,true,true,false,0,false))throw "transient state retained timer";
+        if(policy.confirmedTown(7000,2,false,true,false,0,false))throw "disabled town follow";
+        if(policy.confirmedTown(9000,2,true,true,false,0,true))throw "local hero contradicted town";
+        var away = new FollowPolicy();
+        if(!away.confirmedAway(0,true,true,5,5,false,false))throw "settled absence not instant";
+        if(away.confirmedAway(6000,true,true,5,5,true,false))throw "same floor leader followed";
+        if(away.confirmedAway(7000,true,true,6,5,false,true))throw "followed during transition";
+        if(!away.confirmedAway(10000,true,true,6,5,false,false))throw "different map follow missing";
+        var moved = new FollowPolicy();
+        if(!moved.confirmedAway(0,true,true,5,5,false,false,true))throw "presence move not instant";
+        if(moved.confirmedAway(0,true,true,5,5,true,false,true))throw "moved leader followed while here";
+        if(moved.confirmedAway(0,true,true,5,5,false,true,true))throw "moved leader followed during transition";
+        if(moved.confirmedAway(0,false,true,5,5,false,false,true))throw "moved leader followed while disabled";
+        var guard=new FollowPolicy();
+        if(!guard.stageGuard(0,1,false,true))throw "floor arrival unguarded";
+        if(guard.stageGuard(5000,1,false,true))throw "guard stuck";
+        if(!guard.stageGuard(6000,1,true,true))throw "countdown unguarded";
+        if(!guard.stageGuard(11000,2,false,true))throw "new floor grace missing";
+        if(guard.stageGuard(16000,2,false,true))throw "new floor grace stuck";
+        var ready=new FollowPolicy();
+        if(!ready.stageGuard(0,1,false,true,false))throw "arrival before data unguarded";
+        if(!ready.stageGuard(800,1,false,true,true))throw "no settling second after data";
+        if(!ready.stageGuard(1700,1,false,true,true))throw "settling second too short";
+        if(ready.stageGuard(1801,1,false,true,true))throw "data-ready guard stuck";
+        if(!ready.stageGuard(1900,1,true,true,true))throw "countdown unguarded after data";
+        var ur=new FollowPolicy();
+        if(!ur.preserveRestrictedRun("INFINITE_DUNGEON",false,false))throw "UR run unprotected";
+        if(!ur.preserveRestrictedRun(null,false,false))throw "UR loading lost protection";
+        if(!ur.preserveRestrictedRun("INFINITE_DUNGEON",false,false))throw "UR second floor unprotected";
+        if(ur.preserveRestrictedRun(null,false,true))throw "results prevented following";
+        ur.preserveRestrictedRun("INFINITE_DUNGEON",false,false);
+        if(ur.preserveRestrictedRun(null,true,false))throw "town protection stuck";
+        if(ur.preserveRestrictedRun("ARENA_GAUNTLET",false,false))throw "normal map blocked";
         trace("Town follow regressions passed");
     }
 }

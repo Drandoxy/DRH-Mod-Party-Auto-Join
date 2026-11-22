@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix="party-popup-") as folder:
     package.mkdir(parents=True)
     shutil.copy2(root / "src" / "FriendPopupLayout.hx", package / "FriendPopupLayout.hx")
     shutil.copy2(root / "src" / "MemberStatus.hx", package / "MemberStatus.hx")
-    for name in ("PartyState.hx", "PartyMember.hx", "FollowPolicy.hx", "StagePresence.hx"):
+    for name in ("PartyState.hx", "PartyMember.hx", "FollowPolicy.hx", "StagePresence.hx", "SummaryRules.hx"):
         shutil.copy2(root / "src" / name, package / name)
     subprocess.run([args.haxe, "-cp", str(runtime), "-main", "PausedStateChecks", "--interp"], check=True)
     subprocess.run([args.haxe, "-cp", str(runtime), "-main", "MemberStatusChecks", "--interp"], check=True)
@@ -24,3 +24,5 @@ with tempfile.TemporaryDirectory(prefix="party-popup-") as folder:
     subprocess.run([args.haxe, "-cp", str(runtime), "-main", "TownFollowChecks", "--interp"], check=True)
 
     subprocess.run([args.haxe, "-cp", str(runtime), "-main", "StagePresenceChecks", "--interp"], check=True)
+
+    subprocess.run([args.haxe, "-cp", str(runtime), "-main", "RewardWaitChecks", "--interp"], check=True)
