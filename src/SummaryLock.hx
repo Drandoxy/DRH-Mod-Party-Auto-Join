@@ -30,6 +30,7 @@ class SummaryLock {
 	var previousFocus:Dynamic;
 	var navigationHeld = false;
 	var replacement:Dynamic;
+	var layerSeen = false;
 
 	public function new() {}
 
@@ -92,7 +93,7 @@ class SummaryLock {
 				return;
 			summary = value;
 		}
-		if (value == null || !screenAlive())
+		if (value == null || screenClosed())
 			return;
 		var section = Read.get(value, "mNextFloorSection");
 		var found:UIButton = cast Read.get(section, "mBattleButton");
@@ -142,15 +143,28 @@ class SummaryLock {
 		}
 	}
 
-	/** True while the results screen still has its navigation layer, so its UI objects are not destroyed yet. */
-	public static function layerOpen(layers:String):Bool
+	/** True when the navigation layer list contains the results screen layer. */
+	public static function layerOpen(layers:String):Bool {
 		return layers != null && layers.indexOf("DISTRIBUTED_DUNGEON_SUMMARY,") >= 0;
+	}
 
-	function screenAlive():Bool {
+	/**
+	 * True once the game is closing the results screen. The game adds the results layer only after the reveal
+	 * and removes it only when leaving (Battle, Close or destroy), so a layer seen earlier and now missing, or the
+	 * screen's own leaving flag, means its UI objects are being destroyed. Before the reveal the screen is open.
+	 */
+	function screenClosed():Bool {
 		if (summary == null)
-			return false;
+			return true;
+		if (Read.get(summary, "mLeaving") == true)
+			return true;
 		var navigation = Read.get(Read.get(summary, "mDBFacade"), "menuNavigationController");
-		return navigation != null && layerOpen(Std.string(Read.call(navigation, "getAllCurrentLayers", [])));
+		if (navigation == null)
+			return layerSeen;
+		var open = layerOpen(Std.string(Read.call(navigation, "getAllCurrentLayers", [])));
+		if (open)
+			layerSeen = true;
+		return layerSeen && !open;
 	}
 
 	/**
@@ -158,7 +172,7 @@ class SummaryLock {
 	 * UI objects are then destroyed, so only the references are dropped and nothing is re-added or re-linked.
 	 */
 	public function restore(gone:Bool = false):Void {
-		if (gone || !screenAlive()) {
+		if (gone || screenClosed()) {
 			release();
 			return;
 		}
@@ -212,5 +226,6 @@ class SummaryLock {
 		previousFocus = null;
 		replacement = null;
 		navigationHeld = false;
+		layerSeen = false;
 	}
 }

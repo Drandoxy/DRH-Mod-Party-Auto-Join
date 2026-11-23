@@ -58,10 +58,11 @@ class SummaryLockChecks {
 
 	static function main() {
 		check(SummaryLock.layerOpen("DISTRIBUTED_DUNGEON_SUMMARY, "), "layer listed");
+		check(SummaryLock.layerOpen("TOWN, DISTRIBUTED_DUNGEON_SUMMARY, CHAT, "), "layer listed among others");
 		check(!SummaryLock.layerOpen("TOWN, "), "other layer");
 		check(!SummaryLock.layerOpen(null), "no layers");
 
-		// Open screen: lock hides the button, restore gives it back.
+		// Open screen: the lock hides the button, restore gives it back.
 		var s = scene();
 		var lock = new SummaryLock();
 		lock.apply(s.summary, true);
@@ -69,6 +70,16 @@ class SummaryLockChecks {
 		lock.restore();
 		check(s.button.root.parent == s.parent, "button back on an open screen");
 		check(s.navigation.replaced == 2, "navigation held and restored");
+		check(s.section.enabledCalls == 1, "native button state restored");
+
+		// Before the reveal the game has not added the layer yet: the lock still holds and restores as before.
+		var s = scene();
+		s.navigation.layers = "";
+		var lock = new SummaryLock();
+		lock.apply(s.summary, true);
+		check(s.button.root.parent == null, "button hidden before the reveal");
+		lock.restore();
+		check(s.button.root.parent == s.parent, "button back before the reveal");
 
 		// The game closes the results screen (leader followed): nothing is re-added or re-linked.
 		var s = scene();
@@ -82,7 +93,7 @@ class SummaryLockChecks {
 		check(s.section.enabledCalls == 0, "no native calls after close");
 		check(s.parent.numChildren == 0, "own label removed");
 
-		// Layer already gone without the gone flag (mod disabled during the exit).
+		// Layer removed without the gone flag (mod disabled during the exit).
 		var s = scene();
 		var lock = new SummaryLock();
 		lock.apply(s.summary, true);
@@ -90,11 +101,27 @@ class SummaryLockChecks {
 		lock.restore();
 		check(s.button.root.parent == null && s.section.enabledCalls == 0, "closed layer detected");
 
-		// Apply after the layer closed does not touch the screen.
+		// Further holds after the close do not touch the screen.
 		var s = scene();
+		var lock = new SummaryLock();
+		lock.apply(s.summary, true);
 		s.navigation.layers = "";
-		new SummaryLock().apply(s.summary, true);
-		check(s.button.root.parent == s.parent, "no hold on a closed screen");
+		var replacedBefore = s.navigation.replaced;
+		lock.apply(s.summary, true);
+		check(s.navigation.replaced == replacedBefore, "no hold on a closed screen");
+
+		// The screen's own leaving flag counts as closed even before the layer is gone.
+		var s = scene();
+		var lock = new SummaryLock();
+		lock.apply(s.summary, true);
+		Reflect.setField(s.summary, "mLeaving", true);
+		lock.restore();
+		check(s.button.root.parent == null && s.section.enabledCalls == 0, "leaving flag detected");
+
+		// A new results screen after a closed one is held again.
+		var next = scene();
+		lock.apply(next.summary, true);
+		check(next.button.root.parent == null, "next results screen held");
 		trace("SummaryLockChecks ok");
 	}
 }
