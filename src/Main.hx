@@ -75,6 +75,10 @@ class Main extends Mod {
 	var lastNode = 0;
 	/** Presence changed while the leader was not in this dungeon: they started another game. */
 	var leaderMovedSinceHere = false;
+	var arrivalFloor = -1;
+	var arrivalAt = -1.;
+	var leaderSeenOnFloor = false;
+	var endingSince = -1.;
 	var attemptEpoch = -1;
 	var promptKey = "";
 	var lastError = "";
@@ -207,6 +211,50 @@ class Main extends Mod {
 	}
 
 	/** Writes to the game log. */
+	/**
+	 * Two moments look like the leader leaving but are not: the leader has not appeared yet on a
+	 * floor we just loaded (their game loads slower), and the last floor finishing, which removes
+	 * every hero and clears their dungeon presence before the results appear. Hold both, briefly,
+	 * unless their presence names another dungeon.
+	 */
+	function holdForLeaderArrivalOrResults(inRun:Bool, node:Int):Bool {
+		var now = Lib.getTimer();
+		var floorId = ctx.state.floor == null ? -1 : Std.int(ctx.state.floor.id);
+		if (floorId != arrivalFloor) {
+			arrivalFloor = floorId;
+			arrivalAt = now;
+			leaderSeenOnFloor = false;
+			endingSince = -1;
+		}
+		var leaderHere = here(state.leader) != null;
+		if (leaderHere)
+			leaderSeenOnFloor = true;
+		if (!inRun || summary != null || leaderHere || floorId < 0) {
+			endingSince = -1;
+			return false;
+		}
+		var nativeFloor = facade.gameObjectManager.getReferenceFromId(ctx.state.floor.id);
+		var nodeData = Read.get(nativeFloor, "gmMapNode");
+		var floorNode = Std.int(Read.number(nodeData, "Id"));
+		// Presence naming a different dungeon is a real move: follow it.
+		var elsewhere = node > 0 && floorNode > 0 && node != floorNode;
+		if (elsewhere)
+			return false;
+		if (!leaderSeenOnFloor && now - arrivalAt < 10000) {
+			status = "Waiting for Leader";
+			return true;
+		}
+		if (leaderSeenOnFloor && isFinalFloor(nodeData, ctx.state.floor.number)) {
+			if (endingSince < 0)
+				endingSince = now;
+			if (now - endingSince < 20000) {
+				status = "Waiting for results";
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** The last floor of a normal dungeon, read from the map node's tier floor count. */
 	function isFinalFloor(nodeData:Dynamic, number:Int):Bool {
 		if (nodeData == null)
@@ -785,6 +833,8 @@ class Main extends Mod {
 		} else
 			leaderOfflineAt = -1;
 
+		if (holdForLeaderArrivalOrResults(inRun, node))
+			return;
 		if (here(state.leader) != null)
 			leaderMissingSince = -1;
 		else if (leaderMissingSince < 0)

@@ -52,6 +52,7 @@ Works alongside [Auto Dungeon / Loot Manager](https://github.com/Drandoxy/DRH-Mo
 - Shorter "Wait in current dungeon" description so it shows in full in the MODS tab.
 - Fixed the Ultimate Records credit link.
 - Finishing the last floor no longer looks like the leader leaving: the follower stays for the results instead of returning to Town.
+- When the leader loads a floor more slowly, the follower waits up to 10 seconds for them to appear instead of leaving.
 
 ## License and credits
 
