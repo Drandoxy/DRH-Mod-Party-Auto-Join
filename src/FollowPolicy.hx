@@ -4,8 +4,13 @@ package mods.party_auto_join;
 class FollowPolicy {
 	public function new() {}
 
-	public static function waitingCurrent(inRun:Bool, enabled:Bool, results:Bool):Bool {
-		return inRun && enabled && !results;
+	/**
+	 * Whether "Wait in current dungeon" holds this player in the current dungeon.
+	 * A follower with "Auto follow everywhere" on always follows its leader, so the wait applies
+	 * only when this player leads or is not following anyone automatically.
+	 */
+	public static function waitingCurrent(inRun:Bool, enabled:Bool, results:Bool, followingEverywhere:Bool = false):Bool {
+		return inRun && enabled && !results && !followingEverywhere;
 	}
 
 	public static function joinTimedOut(now:Float, deadline:Float, automatic:Bool):Bool {

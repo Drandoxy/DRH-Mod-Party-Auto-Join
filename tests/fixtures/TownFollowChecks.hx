@@ -2,6 +2,7 @@ import mods.party_auto_join.FollowPolicy;
 class TownFollowChecks {
     static function main() {
         if(!FollowPolicy.waitingCurrent(true,true,false)||FollowPolicy.waitingCurrent(false,true,false)||FollowPolicy.waitingCurrent(true,true,true))throw "Current-dungeon wait guard leaked into town/results";
+        if(FollowPolicy.waitingCurrent(true,true,false,true))throw "Auto follow everywhere must follow the leader between dungeons even with waiting on";
         if(FollowPolicy.joinTimedOut(999999,1,true)||!FollowPolicy.joinTimedOut(999999,1,false))throw "automatic party join timed out";
         if (FollowPolicy.waitForDeparture(false, true, false)) throw "Town blocked by stale session";
         if (!FollowPolicy.waitForDeparture(true, true, false)) throw "Active shared session must wait";

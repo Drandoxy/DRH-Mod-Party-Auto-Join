@@ -8,7 +8,7 @@ Automatically join your chosen leader's game wherever they are, whenever joining
 - **Manual mode:** selecting a leader starts here. No automatic joining, welcome prompts or end-screen restrictions. Normal controls and Dungeon Manager automation work as usual.
 - **Auto mode:** click **Join** beside the leader. It waits while they are in Town, then follows their floors and restarts. Switching dungeons while playing asks for confirmation unless Auto follow everywhere is on. Normal game admission rules apply. End-screen next/restart automation waits for the leader; loot collection and animation skipping still work.
 - **Auto follow everywhere** (Settings > Mods, default off): follows the leader on its own, with no prompts. After a floor has loaded the other players, a leader who is not in your dungeon is followed right away, into another dungeon, a new run of the same dungeon, or Town (Town needs one second of Town presence, because a restart passes through Town briefly). Leaving forfeits unclaimed loot, so following waits until the end-screen rewards are finished. Ultimate Rampage runs are never left early.
-- **Wait in current dungeon** (Settings > Mods, default off): never leave a live dungeon because party members are missing or offline. Town and end-screen joining still work.
+- **Wait in current dungeon** (Settings > Mods, default off): never leave a live dungeon because party members are missing or offline. Town and end-screen joining still work. A follower with Auto follow everywhere on still follows its leader into another dungeon.
 - **Leader offline:** in auto mode, if the leader is reported offline for five seconds while you are in a dungeon or on its end screen, the mod returns to Town. Temporary presence outages can trigger this too. When the leader returns, following resumes (with a prompt unless Auto follow everywhere is on). Manual mode never returns automatically.
 - **Pause Auto Join** returns to manual mode.
 - **Ctrl+Shift+P** pauses and hides the panel, stopping background work. Press again to show it in **manual mode**. Your roster and leader are kept.
@@ -53,6 +53,7 @@ Works alongside [Auto Dungeon / Loot Manager](https://github.com/Drandoxy/DRH-Mo
 - Fixed the Ultimate Records credit link.
 - Finishing the last floor no longer looks like the leader leaving: the follower stays for the results instead of returning to Town.
 - When the leader loads a floor more slowly, the follower waits up to 10 seconds for them to appear instead of leaving.
+- With "Auto follow everywhere" on, a follower now follows its leader from one dungeon straight into another even if "Wait in current dungeon" is also on. Waiting still applies to the leader and to players not following anyone.
 
 ## License and credits
 

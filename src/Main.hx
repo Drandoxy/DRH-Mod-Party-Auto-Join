@@ -669,7 +669,8 @@ class Main extends Mod {
 
 	function poll(force:Bool):Void {
 		var waitHere = waitInDungeon != null && waitInDungeon.value;
-		if (FollowPolicy.waitingCurrent(facade.mainStateMachine.currentStateName == "RunState", waitHere, summary != null)) {
+		var followingEverywhere = leaveWithLeader != null && leaveWithLeader.value && state.leader > 0 && state.leader != facade.accountId;
+		if (FollowPolicy.waitingCurrent(facade.mainStateMachine.currentStateName == "RunState", waitHere, summary != null, followingEverywhere)) {
 			leaderOfflineAt = leaderMissingSince = -1;
 			policy.reset();
 			status = "Waiting for friend - no time limit";
