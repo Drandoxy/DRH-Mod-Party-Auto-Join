@@ -8,7 +8,7 @@ Automatically join your chosen leader's game wherever they are, whenever joining
 - **Manual mode:** selecting a leader starts here. No automatic joining, welcome prompts or end-screen restrictions. Normal controls and Dungeon Manager automation work as usual.
 - **Auto mode:** click **Join** beside the leader. It waits while they are in Town, then follows their floors and restarts. Switching dungeons while playing asks for confirmation unless Auto follow everywhere is on. Normal game admission rules apply. End-screen next/restart automation waits for the leader; loot collection and animation skipping still work.
 - **Auto follow everywhere** (Settings > Mods, default off): follows the leader on its own, with no prompts. After a floor has loaded the other players, a leader who is not in your dungeon is followed right away, into another dungeon, a new run of the same dungeon, or Town (Town needs one second of Town presence, because a restart passes through Town briefly). Leaving forfeits unclaimed loot, so following waits until the end-screen rewards are finished. Ultimate Rampage runs are never left early.
-- **Wait in current dungeon** (Settings > Mods, default off): keeps you in your current dungeon while your leader is away. In a live dungeon the mod then never takes you out: not when the leader goes offline, returns to Town or starts another dungeon. Joining from the end screen and from Town works as usual. **Turn it on** to finish your run when your leader's connection drops or they leave early, or when you prefer to complete every dungeon you are in. **Leave it off** to stay with your leader at all times, including returning to Town when they go offline. It has no effect while Auto follow everywhere is on and someone else leads (you then always follow), and it changes nothing for the leader, who is never moved.
+- **Wait in current dungeon** (Settings > Mods, default off): stay in your current dungeon while your leader is away. In a live dungeon the mod never takes you out, even if the leader goes offline, returns to Town or starts another dungeon. End-screen and Town joining work as usual. **Turn it on** to finish your run when your leader's connection drops or they leave early. **Leave it off** to always stay with your leader. Ignored while Auto follow everywhere is on (you always follow); no effect for the leader.
 - **Leader offline:** in auto mode, if the leader is reported offline for five seconds while you are in a dungeon or on its end screen, the mod returns to Town (in a live dungeon, not while Wait in current dungeon is on). Temporary presence outages can trigger this too. When the leader returns, following resumes (with a prompt unless Auto follow everywhere is on). Manual mode never returns automatically.
 - **Pause Auto Join** returns to manual mode.
 - **Ctrl+Shift+P** pauses and hides the panel, stopping background work. Press again to show it in **manual mode**. Your roster and leader are kept.
@@ -17,12 +17,12 @@ Hold a row for half a second to drag it. Town and dungeon positions save separat
 
 The game does not expose dungeon instance IDs, so a new run of the same dungeon is recognized by the leader's presence changing or by their absence from your floor.
 
-Upgrading from the previous mod ID: disable or remove the old Party Time Auto Game Joiner copy to avoid running both. Existing party preferences are copied on first launch when available.
-
 ### Compatibility
 
 Works alongside [Auto Dungeon / Loot Manager](https://github.com/Drandoxy/DRH-Mod-Auto-Dungeon-Loot-Manager); neither mod replaces the other. While automatically following a leader, Party Auto Join pauses only the manager's automatic Next/Restart actions. Loot collection and animation skipping remain active, and the manager's saved settings are preserved. Returning to manual mode restores normal manager behavior. Use Auto Dungeon / Loot Manager 0.2.35 or later. Both mods can be enabled together; the manager is optional.
 <!-- /drh:show -->
+
+Upgrading from the previous mod ID: disable or remove the old Party Time Auto Game Joiner copy to avoid running both. Existing party preferences are copied on first launch when available.
 
 ### Screenshots
 
