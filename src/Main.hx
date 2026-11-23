@@ -204,7 +204,8 @@ class Main extends Mod {
 		}));
 		subscriptions.push(ctx.core.onObjectGone(function(o) {
 			if (o == summary) {
-				lock.restore();
+				// The game has already destroyed the results UI: drop references only.
+				lock.restore(true);
 				summary = null;
 			}
 		}));

@@ -92,7 +92,7 @@ class SummaryLock {
 				return;
 			summary = value;
 		}
-		if (value == null)
+		if (value == null || !screenAlive())
 			return;
 		var section = Read.get(value, "mNextFloorSection");
 		var found:UIButton = cast Read.get(section, "mBattleButton");
@@ -142,7 +142,26 @@ class SummaryLock {
 		}
 	}
 
-	public function restore():Void {
+	/** True while the results screen still has its navigation layer, so its UI objects are not destroyed yet. */
+	public static function layerOpen(layers:String):Bool
+		return layers != null && layers.indexOf("DISTRIBUTED_DUNGEON_SUMMARY,") >= 0;
+
+	function screenAlive():Bool {
+		if (summary == null)
+			return false;
+		var navigation = Read.get(Read.get(summary, "mDBFacade"), "menuNavigationController");
+		return navigation != null && layerOpen(Std.string(Read.call(navigation, "getAllCurrentLayers", [])));
+	}
+
+	/**
+	 * Gives the results screen back its controls. `gone` is true once the game has closed the screen: its
+	 * UI objects are then destroyed, so only the references are dropped and nothing is re-added or re-linked.
+	 */
+	public function restore(gone:Bool = false):Void {
+		if (gone || !screenAlive()) {
+			release();
+			return;
+		}
 		for (link in links)
 			if (Read.get(link.owner, link.name) == null) {
 				Read.set(link.owner, link.name, link.target);
@@ -176,8 +195,13 @@ class SummaryLock {
 				extraParent.addChildAt(extra, Std.int(Math.min(extraIndex, extraParent.numChildren)));
 			extra.visible = extraVisible;
 		}
+		release();
+	}
+
+	function release():Void {
 		if (label != null && label.parent != null)
 			label.parent.removeChild(label);
+		links = [];
 		summary = null;
 		button = null;
 		callback = null;

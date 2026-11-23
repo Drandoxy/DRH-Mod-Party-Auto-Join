@@ -59,6 +59,10 @@ Upgrading from the previous mod ID: disable or remove the old Party Time Auto Ga
 
 - Clearer description of Wait in current dungeon: what it does, and when to turn it on or leave it off.
 
+## Changes since 0.1.88
+
+- Fixed a crash after dungeon runs when following the leader from the results screen: the mod no longer restores its "Waiting for Leader" changes on a results screen the game has already closed.
+
 ## License and credits
 
 Licensed under GPL-3.0; see [LICENSE](LICENSE).
