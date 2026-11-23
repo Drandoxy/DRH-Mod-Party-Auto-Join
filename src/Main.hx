@@ -207,6 +207,19 @@ class Main extends Mod {
 	}
 
 	/** Writes to the game log. */
+	/** The last floor of a normal dungeon, read from the map node's tier floor count. */
+	function isFinalFloor(nodeData:Dynamic, number:Int):Bool {
+		if (nodeData == null)
+			return false;
+		try {
+			var tier:Dynamic = facade.gameMaster.coliseumTierByConstant.itemFor(Read.get(nodeData, "TierRank"));
+			var total = Read.number(tier, "TotalFloors");
+			return total > 0 && number >= total;
+		} catch (error:Dynamic) {
+			return false;
+		}
+	}
+
 	function note(message:String):Void {
 		ctx.log(message);
 	}
@@ -792,6 +805,7 @@ class Main extends Mod {
 			return;
 
 		var currentNode:Float = sharedNode > 0 ? sharedNode : node;
+		var finalFloor = false;
 		// Use the public floor map's GM map node ID when available, never its displayed name.
 		if (ctx.state.floor != null) {
 			var nativeFloor = facade.gameObjectManager.getReferenceFromId(ctx.state.floor.id);
@@ -799,12 +813,17 @@ class Main extends Mod {
 			var knownNode = Read.number(nodeData, "Id");
 			if (knownNode > 0)
 				currentNode = knownNode;
+			finalFloor = isFinalFloor(nodeData, ctx.state.floor.number);
 		}
 		// Proof the leader started another game: their presence changed after they left this
 		// dungeon (another dungeon, or town and back into the same one: a new instance).
 		var skipGrace = inRun && movedDuringJoin && !joining;
 		var leaderMoved = inRun && (leaderMovedSinceHere || skipGrace);
-		if (policy.confirmedAway(Lib.getTimer(), leaveWithLeader != null && leaveWithLeader.value && followingLeader() && !joining && (!stageChanging || skipGrace), leaderInfo != null
+		// Finishing the last floor removes every hero at once before the results appear,
+		// so absence alone is not a departure there; require a real presence change.
+		var absenceTrusted = !finalFloor || leaderMoved;
+		if (policy.confirmedAway(Lib.getTimer(), leaveWithLeader != null && leaveWithLeader.value && followingLeader() && !joining
+			&& (!stageChanging || skipGrace) && absenceTrusted, leaderInfo != null
 			&& leaderInfo.isOnline(), node, Std.int(currentNode), here(state.leader) != null, skipGrace ? false : transition, leaderMoved)) {
 			movedDuringJoin = false;
 			leaderDepartureSeen = true;
