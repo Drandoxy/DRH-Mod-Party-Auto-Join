@@ -47,8 +47,13 @@ Works alongside [Auto Dungeon / Loot Manager](https://github.com/Drandoxy/DRH-Mo
 - The progression hold for Auto Dungeon / Loot Manager uses a shared overlay marker instead of a cross-mod static lookup.
 - No popup when the leader is already in Town; the panel shows it. "In Town" is capitalized.
 
+## Changes since 0.1.86
+
+- Shorter "Wait in current dungeon" description so it shows in full in the MODS tab.
+- Fixed the Ultimate Records credit link.
+
 ## License and credits
 
 Licensed under GPL-3.0; see [LICENSE](LICENSE).
 
-Dialog artwork loading follows [Ultimate Records](https://github.com/Drandoxy/DRH-Mod-Records). Game artwork loads at runtime.
+Dialog artwork loading follows [Ultimate Records](https://github.com/THEYAKUZI/DRH-Mod-Records). Game artwork loads at runtime.

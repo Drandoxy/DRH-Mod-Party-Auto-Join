@@ -83,7 +83,7 @@ class Main extends Mod {
 	override public function init(context:Context):Void {
 		ctx = context;
 		waitInDungeon = ctx.settings.flag("waitInDungeon", "Wait in current dungeon",
-			"Stay in a live dungeon when a party member is absent or offline. Town and result-screen joining remain available.", false);
+			"Stay in your dungeon while a party member is away.", false);
 		leaveWithLeader = ctx.settings.flag("leaveWithLeader", "Auto follow everywhere", "Automatically follow your leader between dungeons and Town.", false);
 		// Read old preferences once without changing the previous installation's data.
 		var statePath = ctx.data + "/party.json";
