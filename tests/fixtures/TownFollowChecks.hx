@@ -11,6 +11,13 @@ class TownFollowChecks {
         if(FollowPolicy.acceptsStartup(false,false,2,1))throw "disabled option bypassed prompt";
         if(FollowPolicy.acceptsStartup(true,true,2,1))throw "manual pause overridden";
         if(FollowPolicy.acceptsStartup(true,false,0,1)||FollowPolicy.acceptsStartup(true,false,1,1))throw "invalid leader accepted";
+        if(!FollowPolicy.holdForOffline(true,false,false))throw "offline leader was followed";
+        if(FollowPolicy.holdForOffline(true,true,false))throw "online leader held as offline";
+        if(FollowPolicy.holdForOffline(false,false,false))throw "unknown friend entry treated as offline";
+        if(FollowPolicy.holdForOffline(true,false,true))throw "join under way cancelled by offline status";
+        if(FollowPolicy.sharedNodeFor(true,false,50002)!=0)throw "town kept the previous dungeon node";
+        if(FollowPolicy.sharedNodeFor(true,true,50002)!=50002||FollowPolicy.sharedNodeFor(false,false,50002)!=50002)throw "shared node dropped in a run or while joining";
+        if(!FollowPolicy.showNoWeapon(false,false)||FollowPolicy.showNoWeapon(true,false)||FollowPolicy.showNoWeapon(false,true))throw "no-weapon notice shown wrongly";
         var policy = new FollowPolicy();
         if (policy.decide(10000, 2, 1, 5, false, false, false, false, "2:5") != "join") throw "Town must join";
         if(policy.confirmedTown(0,2,true,true,false,0,false))throw "unconfirmed town";

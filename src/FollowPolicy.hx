@@ -130,4 +130,22 @@ class FollowPolicy {
 			return dismissed == key ? "wait" : "ask";
 		return "join";
 	}
+
+	/**
+	 * A fully offline leader is never followed: no join attempt and no forced return to Town while
+	 * offline. Only a known friend entry that says offline counts; a join already under way finishes.
+	 */
+	public static function holdForOffline(known:Bool, online:Bool, joining:Bool):Bool {
+		return known && !online && !joining;
+	}
+
+	/** The map node this client shares with the leader. Town never keeps the previous dungeon's node. */
+	public static function sharedNodeFor(town:Bool, joining:Bool, shared:Int):Int {
+		return town && !joining ? 0 : shared;
+	}
+
+	/** Show the no-weapon notice once per episode; equipping a weapon starts a new episode. */
+	public static function showNoWeapon(alreadyShown:Bool, hasWeapon:Bool):Bool {
+		return !hasWeapon && !alreadyShown;
+	}
 }

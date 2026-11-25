@@ -8,8 +8,9 @@ Automatically join your chosen leader's game wherever they are, whenever joining
 - **Manual mode:** selecting a leader starts here. No automatic joining, welcome prompts or end-screen restrictions. Normal controls and Dungeon Manager automation work as usual.
 - **Auto mode:** click **Join** beside the leader. It waits while they are in Town, then follows their floors and restarts. Switching dungeons while playing asks for confirmation unless Auto follow everywhere is on. Normal game admission rules apply. End-screen next/restart automation waits for the leader; loot collection and animation skipping still work.
 - **Auto follow everywhere** (Settings > Mods, default off): follows the leader on its own, with no prompts. After a floor has loaded the other players, a leader who is not in your dungeon is followed right away, into another dungeon, a new run of the same dungeon, or Town (Town needs one second of Town presence, because a restart passes through Town briefly). Leaving forfeits unclaimed loot, so following waits until the end-screen rewards are finished. Ultimate Rampage runs are never left early.
-- **Wait in current dungeon** (Settings > Mods, default off): stay in your current dungeon while your leader is away. In a live dungeon the mod never takes you out, even if the leader goes offline, returns to Town or starts another dungeon. End-screen and Town joining work as usual. **Turn it on** to finish your run when your leader's connection drops or they leave early. **Leave it off** to always stay with your leader. Ignored while Auto follow everywhere is on (you always follow); no effect for the leader.
-- **Leader offline:** in auto mode, if the leader is reported offline for five seconds while you are in a dungeon or on its end screen, the mod returns to Town (in a live dungeon, not while Wait in current dungeon is on). Temporary presence outages can trigger this too. When the leader returns, following resumes (with a prompt unless Auto follow everywhere is on). Manual mode never returns automatically.
+- **Wait in current dungeon** (Settings > Mods, default off): stay in your current dungeon while your leader is away. In a live dungeon the mod never takes you out, even if the leader goes offline, returns to Town or starts another dungeon. End-screen and Town joining work as usual. **Turn it on** to finish your run when your leader leaves early. **Leave it off** to always stay with your leader. Ignored while Auto follow everywhere is on (you always follow); no effect for the leader.
+- **Leader offline:** an offline leader is never followed. The mod does not take you out of your dungeon or end screen and does not try to join; it waits. When the leader is online again, following resumes on its own.
+- **No weapon equipped:** the game does not let a hero without a weapon enter a dungeon. The mod then shows one notice instead of retrying, and follows again as soon as a weapon is equipped.
 - **Pause Auto Join** returns to manual mode.
 - **Ctrl+Shift+P** pauses and hides the panel, stopping background work. Press again to show it in **manual mode**. Your roster and leader are kept.
 
@@ -62,6 +63,12 @@ Upgrading from the previous mod ID: disable or remove the old Party Time Auto Ga
 ## Changes since 0.1.88
 
 - Fixed a crash after dungeon runs when following the leader from the results screen: the mod no longer restores its "Waiting for Leader" changes on a results screen the game has already closed.
+
+## Changes since 0.1.89
+
+- An offline leader is never followed: no return to Town while they are offline (also from a dungeon you started yourself) and no join attempts. Following resumes on its own when they are back online, without a prompt.
+- After returning to Town, a leader in the same dungeon type as your last run (for example Proving Grounds again) is followed: Town no longer remembers the previous dungeon's map.
+- With no weapon equipped, the game refuses to enter a dungeon. The mod now shows one notice saying so and waits, instead of retrying silently several times a second.
 
 ## License and credits
 

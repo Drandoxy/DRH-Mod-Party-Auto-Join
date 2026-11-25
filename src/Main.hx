@@ -68,6 +68,8 @@ class Main extends Mod {
 	/** False while the floor arrival guard waits for the floor's data. */
 	var floorSettled = true;
 	var sharedNode = 0;
+	/** The no-weapon notice was shown; shown again only after a weapon was equipped in between. */
+	var noWeaponShown = false;
 	var joinDeadline = 0;
 	var targetId = 0;
 	var leaderNode = 0;
@@ -728,6 +730,7 @@ class Main extends Mod {
 		var transition = (current != "TownState" && current != "RunState") || stageChanging;
 		floorSettled = current == "RunState" && !stageChanging;
 		var inRun = current == "RunState";
+		sharedNode = FollowPolicy.sharedNodeFor(current == "TownState", joining, sharedNode);
 		var promptFriend:FriendInfo = friend(state.leader);
 		var leaderJoinable = promptFriend != null && promptFriend.isOnline() && promptFriend.isInDungeon() && node > 0;
 		if (current != "RunState" && current != "TownState") {
@@ -825,15 +828,15 @@ class Main extends Mod {
 		if (holdForRewards())
 			return;
 		var leaderInfo = friend(state.leader);
-		var leaderOffline = !stageChanging && leaderInfo != null && !leaderInfo.isOnline();
-		if (leaderOffline && (inRun || summary != null) && !joining) {
-			if (leaderOfflineAt < 0)
-				leaderOfflineAt = Lib.getTimer();
-			if (Lib.getTimer() - leaderOfflineAt >= 5000 && !returningForOffline)
-				returnAfterLeaderOffline();
-			return;
-		} else
+		// A fully offline leader is not followed anywhere: this client stays where it is (its own run
+		// included) and simply waits. Following resumes by itself once the leader is online again.
+		if (FollowPolicy.holdForOffline(leaderInfo != null, leaderInfo != null && leaderInfo.isOnline(), joining)) {
 			leaderOfflineAt = -1;
+			panel.ask(false);
+			status = "Leader is offline";
+			return;
+		}
+		leaderOfflineAt = -1;
 
 		if (holdForLeaderArrivalOrResults(inRun, node))
 			return;
@@ -881,7 +884,8 @@ class Main extends Mod {
 			leaderDepartureSeen = true;
 			// A new leader move is never held back by the retry backoff of an earlier attempt.
 			if (Lib.getTimer() >= policy.nextAttempt || attemptEpoch != presenceEpoch) {
-				note(["Auto follow: leader left this dungeon, node " + node, "here node " + Std.int(currentNode), "moved " + leaderMovedSinceHere].join(" "));
+				note(inRun ? ["Auto follow: leader left this dungeon, node " + node, "here node " + Std.int(currentNode), "moved " + leaderMovedSinceHere].join(" ")
+					: "Auto follow: leader is in dungeon node " + node);
 				status = "Following leader...";
 				requestJoin(true);
 			}
@@ -1094,8 +1098,15 @@ class Main extends Mod {
 		if (avatar == null || facade.dbAccountInfo.inventoryInfo.getEquipedItemsOnAvatar(avatar.id).length == 0) {
 			status = "Equip a weapon to join";
 			policy.delay(Lib.getTimer());
+			attemptEpoch = presenceEpoch;
+			if (FollowPolicy.showNoWeapon(noWeaponShown, false)) {
+				noWeaponShown = true;
+				note("Cannot follow leader: no weapons equipped");
+				showNotification("Cannot follow your leader: you cannot enter a dungeon with no weapons equipped. Equip a weapon and following continues by itself.");
+			}
 			return;
 		}
+		noWeaponShown = false;
 		if (summary != null) {
 			var reason = SummaryRules.blocked(summary);
 			if (reason != null) {
