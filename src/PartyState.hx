@@ -16,33 +16,40 @@ class PartyState {
 
 	var path:String;
 
+	/** Why the saved party could not be read, or null. A missing file (first use) is not an error. */
+	public var loadError(default, null):String = null;
+
 	public function new(path:String) {
 		this.path = path;
-		try {
-			var d = haxe.Json.parse(sys.io.File.getContent(path));
-			if (Std.isOfType(d.members, Array))
-				for (m in (cast d.members : Array<Dynamic>))
-					if (members.length < 4 && m.id != null && Std.parseInt(Std.string(m.id)) > 0 && !contains(Std.int(m.id)))
-						members.push(new PartyMember(Std.int(m.id), Std.string(m.name)));
-			if (d.leader != null && contains(Std.int(d.leader)))
-				leader = Std.int(d.leader);
-			for (n in ["x", "y", "width", "height"]) {
-				var v = Reflect.field(d, n);
-				if (v != null && !Math.isNaN(Std.parseFloat(Std.string(v))))
-					Reflect.setField(this, n, Std.parseFloat(Std.string(v)));
+		if (sys.FileSystem.exists(path)) {
+			try {
+				var d = haxe.Json.parse(sys.io.File.getContent(path));
+				if (Std.isOfType(d.members, Array))
+					for (m in (cast d.members : Array<Dynamic>))
+						if (members.length < 4 && m.id != null && Std.parseInt(Std.string(m.id)) > 0 && !contains(Std.int(m.id)))
+							members.push(new PartyMember(Std.int(m.id), Std.string(m.name)));
+				if (d.leader != null && contains(Std.int(d.leader)))
+					leader = Std.int(d.leader);
+				for (n in ["x", "y", "width", "height"]) {
+					var v = Reflect.field(d, n);
+					if (v != null && !Math.isNaN(Std.parseFloat(Std.string(v))))
+						Reflect.setField(this, n, Std.parseFloat(Std.string(v)));
+				}
+				townX = runX = x;
+				townY = y;
+				// Legacy files without separate dungeon coordinates use the safe default.
+				for (n in ["townX", "townY", "runX", "runY"]) {
+					var v = Reflect.field(d, n);
+					if (v != null && !Math.isNaN(Std.parseFloat(Std.string(v))))
+						Reflect.setField(this, n, Std.parseFloat(Std.string(v)));
+				}
+				autoJoinPaused = d.autoJoinPaused == true;
+				if (d.shown != null)
+					shown = d.shown;
+			} catch (error:Dynamic) {
+				loadError = Std.string(error);
 			}
-			townX = runX = x;
-			townY = y;
-			// Legacy files without separate dungeon coordinates use the safe default.
-			for (n in ["townX", "townY", "runX", "runY"]) {
-				var v = Reflect.field(d, n);
-				if (v != null && !Math.isNaN(Std.parseFloat(Std.string(v))))
-					Reflect.setField(this, n, Std.parseFloat(Std.string(v)));
-			}
-			autoJoinPaused = d.autoJoinPaused == true;
-			if (d.shown != null)
-				shown = d.shown;
-		} catch (_:Dynamic) {}
+		}
 		width = Math.max(240, Math.min(700, width));
 		height = Math.max(130, Math.min(700, height));
 	}

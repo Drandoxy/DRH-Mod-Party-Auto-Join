@@ -67,7 +67,10 @@ class FriendButton {
 				var info:FriendInfo = cast Read.get(slot, "mFriendInfo");
 				if (info != null)
 					return info;
-			} catch (_:Dynamic) {}
+			} catch (error:Dynamic) {
+				if (log != null)
+					log("Party + could not read the friend for this popup: " + Std.string(error));
+			}
 		var absolute = index + Std.int(Read.number(leaderboard, "mScrollIndex"));
 		var online = leaderboard.onlineFriends;
 		var offline = leaderboard.offlineFriends;

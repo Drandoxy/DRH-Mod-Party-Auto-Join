@@ -97,6 +97,8 @@ class Main extends Mod {
 		if (!sys.FileSystem.exists(statePath) && sys.FileSystem.exists(legacyPath))
 			sys.io.File.copy(legacyPath, statePath);
 		state = new PartyState(statePath);
+		if (state.loadError != null)
+			note("Saved party could not be read, starting empty: " + state.loadError);
 		clearMarker();
 		keySubscription = ctx.keys.action("toggleParty", "Toggle Party Auto Join", "Pause and hide, or show in manual mode.", Keyboard.P, true, true)
 			.onPress(toggleParty);

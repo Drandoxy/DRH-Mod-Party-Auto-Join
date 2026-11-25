@@ -69,6 +69,7 @@ Upgrading from the previous mod ID: disable or remove the old Party Time Auto Ga
 - An offline leader is never followed: no return to Town while they are offline (also from a dungeon you started yourself) and no join attempts. Following resumes on its own when they are back online, without a prompt.
 - After returning to Town, a leader in the same dungeon type as your last run (for example Proving Grounds again) is followed: Town no longer remembers the previous dungeon's map.
 - With no weapon equipped, the game refuses to enter a dungeon. The mod now shows one notice saying so and waits, instead of retrying silently several times a second.
+- Errors that were silently ignored (an unreadable saved party file, a failed friend lookup for the Party + button) are now written to the game log. A missing party file on first use is normal and not reported.
 
 ## License and credits
 

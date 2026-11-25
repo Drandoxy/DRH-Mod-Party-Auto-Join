@@ -2,7 +2,7 @@
   "id": "party_auto_join",
   "name": "Party Auto Join",
   "description": "Automatically join your chosen leader's game when possible, with a movable friend panel and manual mode.",
-  "version": "0.1.90",
+  "version": "0.1.91",
   "author": "Drandox",
   "api": "1.5.0",
   "entry": "Main",
