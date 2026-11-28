@@ -22,6 +22,9 @@ class Main extends Mod {
 	var manualOnly = false;
 	var leaveWithLeader:mods.api.settings.Flag;
 	var waitInDungeon:mods.api.settings.Flag;
+	var autoRetry:mods.api.settings.Flag;
+	/** Failed joins in a row while retrying automatically, for a longer wait each time. */
+	var autoRetries = 0;
 	var returningWithLeader = false;
 	var rewardsReadySince = -1;
 	var rewardHoldStarted = -1;
@@ -90,7 +93,10 @@ class Main extends Mod {
 		ctx = context;
 		waitInDungeon = ctx.settings.flag("waitInDungeon", "Wait in current dungeon",
 			"Stay in your dungeon while a party member is away.", false);
-		leaveWithLeader = ctx.settings.flag("leaveWithLeader", "Auto follow everywhere", "Automatically follow your leader between dungeons and Town.", false);
+		leaveWithLeader = ctx.settings.flag("leaveWithLeader", "Auto follow everywhere", "Follows your leader between dungeons and Town.", false);
+		autoRetry = ctx.settings.flag("autoRetry", "Retry failed joins automatically",
+			"Retries failed joins by itself instead of asking.",
+			false);
 		// Read old preferences once without changing the previous installation's data.
 		var statePath = ctx.data + "/party.json";
 		var legacyPath = ctx.data + "/../party_time_auto_game_joiner/party.json";
@@ -539,6 +545,9 @@ class Main extends Mod {
 			return;
 		}
 		var scene = facade.mainStateMachine.currentStateName;
+		// In a dungeon: the last join worked, so the next automatic retry starts from the short wait again.
+		if (scene == "RunState")
+			autoRetries = 0;
 		if (scene == "TownState" && lastScene != "TownState") {
 			returningWithLeader = false;
 			returningForOffline = false;
@@ -1209,6 +1218,19 @@ class Main extends Mod {
 		lastError = message;
 		if (retryPopup != null)
 			return;
+		if (autoRetry != null && autoRetry.value) {
+			// Same as answering Yes, after 5 s, then 10, 20, up to 60 s while it keeps failing.
+			autoRetries++;
+			var wait = Std.int(Math.min(60000, 5000 * Math.pow(2, Math.min(autoRetries - 1, 4))));
+			retryPaused = false;
+			status = "Join failed, retrying in " + Math.round(wait / 1000) + " s";
+			policy.nextAttempt = Lib.getTimer() + wait;
+			policy.dismissed = "";
+			ctx.log("join failed (" + message + "), retrying automatically in " + Math.round(wait / 1000) + " s");
+			if (facade.mainStateMachine.currentStateName == "LoadingScreenState")
+				facade.mainStateMachine.enterReloadTownState(true);
+			return;
+		}
 		var respond = function(yes:Bool) {
 			retryPopup = null;
 			if (!yes)
